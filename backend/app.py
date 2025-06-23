@@ -1,18 +1,19 @@
-from flask import Flask, render_template, redirect, url_for, request, flash,session, jsonify
+from flask import Flask,request,session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import (
-    JWTManager, create_access_token, jwt_required, get_jwt_identity
+    JWTManager, create_access_token, jwt_required, get_jwt
 )
 from datetime import datetime, timedelta,date
-import calendar
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sqlalchemy.sql import func
 import os
+from flask_cors import CORS,cross_origin
 
 app = Flask(__name__)
+CORS(app, supports_credentials=True, resources={r"/*": {"origins": "http://localhost:5173"}})
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['JWT_SECRET_KEY'] = 'your-jwt-secret-key'
@@ -23,6 +24,7 @@ jwt = JWTManager(app)
 base_dir=os.path.dirname(os.path.abspath(__file__))
 static_dir=os.path.join(base_dir,'static')
 
+
 class User(db.Model):
     __tablename__ = 'user'
     u_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
@@ -30,9 +32,9 @@ class User(db.Model):
     email=db.Column(db.String(30),unique=True, nullable=False)
     password=db.Column(db.String(15),unique=True,nullable=False)
     addr=db.Column(db.String(200), nullable=False)
-    pin=db.column(db.String(6), nullable=False)
-    admin=db.Column(db.Boolean, nullable=False, default=False)
-    scores = db.relationship("Score", backref='user', lazy=True)
+    pin=db.Column(db.String(6), nullable=False)
+    admin = db.Column(db.Boolean, nullable=False, default=False)
+    rparking_spots = db.relationship("ReserveParkingSpot", backref='user', lazy=True)
 
 class Admin(db.Model):
     __tablename__ = 'admin'
@@ -40,7 +42,7 @@ class Admin(db.Model):
     name = db.Column(db.String(20), nullable=False)
     email=db.Column(db.String(30),unique=True, nullable=False)
     password=db.Column(db.String(15),unique=True,nullable=False)
-    admin=db.Column(db.Boolean, nullable=False, default=True)
+    admin = db.Column(db.Boolean, nullable=False, default=True)
 
 class ParkingLot(db.Model):
     __tablename__ = 'parking_lot'
@@ -56,7 +58,7 @@ class ParkingSpot(db.Model):
     __tablename__ = 'parking_spot'
     spot_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     lot_id = db.Column(db.Integer, db.ForeignKey('parking_lot.lot_id'), nullable=False)
-    status=db.Colum(db.String(1), nullable=False)  # 'A' for available, 'O' for occupied
+    status=db.Column(db.String(1), nullable=False)
 
 class ReserveParkingSpot(db.Model):
     __tablename__ = 'rparking_spot'
@@ -73,18 +75,10 @@ def create_tables():
     if not Admin.query.filter_by(email="Admin01@gmail.com").first():
         admin=Admin(name="Admin", email="Admin01@gmail.com", password=generate_password_hash("Taara4590$"))
         db.session.add(admin)
-        db.session.commit()
+        db.session.commit() 
 
-@app.route('/')
-def start():
-    return render_template('login.html')
-
-@app.route('/clear_flash_messages', methods=['POST'])
-def clear_flash_messages():
-    session.pop('_flashes', None) 
-    return '', 204 
-
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['POST'])
+@cross_origin()
 def register():
     data=request.get_json()
     n=data.get('name')
@@ -109,8 +103,8 @@ def register():
                 db.session.rollback()
                 return jsonify({'msg': str(e)}), 500
 
-
 @app.route('/login', methods=['POST'])
+@cross_origin()
 def login():
     data = request.get_json()
     e = data.get('email')
@@ -120,18 +114,154 @@ def login():
         return jsonify({'msg': 'Email and Password are required'}), 400
 
     user = User.query.filter_by(email=e).first()
+    admin= Admin.query.filter_by(email=e).first()
     if user and check_password_hash(user.password, p):
-        access_token = create_access_token(identity={'u_id': user.u_id, 'admin': user.admin})
+        access_token=create_access_token(identity=str(user.u_id), additional_claims={"admin": False})
         return jsonify({
             'access_token': access_token,
             'admin': user.admin,
-            'msg': 'Login successful'
+            'msg': 'User Login successful'
+        }), 200
+    elif admin and check_password_hash(admin.password, p):
+        access_token=create_access_token(identity=str(admin.a_id), additional_claims={"admin": True})
+        return jsonify({
+            'access_token': access_token,
+            'admin': admin.admin,
+            'msg': 'Admin Login successful'
         }), 200
     else:
         return jsonify({'msg': 'Invalid credentials'}), 401
-    
-@app.route('/logout')
+
+ 
+@app.route('/logout', methods=['POST'])
+@jwt_required()
+@cross_origin() 
 def logout():
-    u_id=session.get('u_id')
-    admin_or_not=User.query.get(u_id).admin
-    return 
+    jti = get_jwt()
+    return jsonify({ 
+            'msg': 'Logout successful'
+        }), 200
+
+@app.route('/admin_dashboard', methods=['OPTIONS'])
+@cross_origin()
+def admin_dashboard_options():
+    return '', 200
+
+@app.route('/admin_dashboard', methods=['GET','POST'])
+@jwt_required()
+@cross_origin()
+def admin_dashboard():
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
+
+    p_lots = ParkingLot.query.all()
+    data = []
+    for lot in p_lots:
+        spots= ParkingSpot.query.filter_by(lot_id=lot.lot_id).all()
+        reserved_spots = ReserveParkingSpot.query.join(ParkingSpot).filter(ParkingSpot.lot_id == lot.lot_id).count()
+        data.append({
+            'lot_id': lot.lot_id,
+            'name': lot.name,
+            'num': lot.num,
+            'occupied': reserved_spots,
+            'spots': [{'spot_id': spot.spot_id, 'status': spot.status} for spot in spots]
+        })
+    return jsonify(data), 200
+
+@app.route('/admin_addlot', methods=['POST','OPTIONS'])
+@jwt_required(optional=True)
+@cross_origin()
+def admin_addlot():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200 
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
+
+    data = request.get_json()
+    name = data.get('name')
+    price = data.get('price')
+    address = data.get('address')
+    pinc = data.get('pinc')
+    num = data.get('num')
+
+    if not name or not price or not address or not pinc or not num:
+        return jsonify({'msg': 'All fields are required'}), 400
+    try:
+        new_lot = ParkingLot(name=name, price=price, address=address, pinc=pinc, num=num)
+        db.session.add(new_lot)
+        db.session.flush()
+        for i in range(num):
+            new_spot = ParkingSpot(lot_id=new_lot.lot_id, status='A')
+            db.session.add(new_spot)
+            db.session.commit()
+    
+        return jsonify({'msg': 'Parking Lot added successfully'}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'msg': str(e)}), 500    
+    
+@app.route('/admin_editlot/<int:lot_id>', methods=['GET','POST'])
+@cross_origin()
+@jwt_required()
+def admin_editlot(lot_id):
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
+
+    lot = ParkingLot.query.get(lot_id)
+    if not lot:
+        return jsonify({'msg': 'Parking Lot not found'}), 404
+
+    if request.method == 'GET':
+        return jsonify({
+            'lot_id': lot.lot_id,
+            'name': lot.name,
+            'price': lot.price,
+            'address': lot.address,
+            'pinc': lot.pinc,
+            'num': lot.num
+        }), 200
+    if request.method == 'POST':
+        data = request.get_json()
+        lot.name = data.get('name', lot.name)
+        lot.price = data.get('price', lot.price)
+        lot.address = data.get('address', lot.address)
+        lot.pinc = data.get('pinc', lot.pinc)
+        lot.num = data.get('num', lot.num)
+        try:
+            db.session.commit()
+            return jsonify({'msg': 'Parking Lot updated successfully'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'msg': str(e)}), 500
+
+@app.route('/admin_dashboard/<int:lot_id>', methods=['DELETE','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)
+def admin_deletelot(lot_id):
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
+
+    lot = ParkingLot.query.get(lot_id)
+    if not lot:
+        return jsonify({'msg': 'Parking Lot not found'}), 404
+
+    o_spots=ParkingSpot.query.filter_by(lot_id=lot.lot_id, status='O').count()
+    if o_spots > 0:
+        return jsonify({'msg': 'Cannot delete Parking Lot with reserved spots'}), 400
+    try:
+        ParkingSpot.query.filter_by(lot_id=lot.lot_id).delete()
+        db.session.delete(lot)
+        db.session.commit()
+        return jsonify({'msg': 'Parking Lot deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'msg': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
