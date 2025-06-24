@@ -34,6 +34,7 @@ class User(db.Model):
     addr=db.Column(db.String(200), nullable=False)
     pin=db.Column(db.String(6), nullable=False)
     admin = db.Column(db.Boolean, nullable=False, default=False)
+    vehicles = db.relationship("Vehicle", backref='user', lazy=True)
     rparking_spots = db.relationship("ReserveParkingSpot", backref='user', lazy=True)
 
 class Admin(db.Model):
@@ -68,6 +69,13 @@ class ReserveParkingSpot(db.Model):
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=False)
     cost= db.Column(db.Integer, nullable=False)
+
+class Vehicle(db.Model):
+    __tablename__ = 'vehicle'
+    v_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'), nullable=False)
+    spot_id = db.Column(db.Integer, db.ForeignKey('rparking_spot.spot_id'), nullable=True)
+    vehicle_no = db.Column(db.String(10), nullable=False)
 
 @app.before_request
 def create_tables():
@@ -133,11 +141,13 @@ def login():
         return jsonify({'msg': 'Invalid credentials'}), 401
 
  
-@app.route('/logout', methods=['POST'])
+@app.route('/logout', methods=['POST','OPTIONS'])
 @jwt_required()
 @cross_origin() 
 def logout():
-    jti = get_jwt()
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
     return jsonify({ 
             'msg': 'Logout successful'
         }), 200
@@ -262,6 +272,94 @@ def admin_deletelot(lot_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'msg': str(e)}), 500
+
+@app.route('/admin_viewspot/<int:spot_id>', methods=['GET','OPTIONS','DELETE'])
+@cross_origin()
+@jwt_required(optional=True)
+def admin_viewspot(spot_id):
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
+
+    if request.method == 'DELETE':
+        spot = ParkingSpot.query.get(spot_id)
+        if not spot:
+            return jsonify({'msg': 'Parking Spot not found'}), 404
+        
+        if spot.status == 'O':
+            return jsonify({'msg': 'Cannot delete reserved Parking Spot'}), 400
+        try:
+            lot= ParkingLot.query.get(spot.lot_id)
+            db.session.delete(spot)            
+            if lot.num>0 and lot:
+                lot.num -= 1
+            db.session.commit()
+            return jsonify({'msg': 'Parking Spot deleted successfully'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'msg': str(e)}), 500
+    if request.method == 'GET':
+        spot = ParkingSpot.query.get(spot_id)
+        if not spot:
+            return jsonify({'msg': 'Parking Spot not found'}), 404
+
+        return jsonify({
+            'spot_id': spot.spot_id,
+            'status': spot.status
+        }), 200
+
+@app.route('/admin_reservespot/<int:spot_id>', methods=['GET','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)
+def admin_reservespot(spot_id):
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
+    spot1= ParkingSpot.query.get(spot_id)
+    lot= ParkingLot.query.get(spot1.lot_id)
+    price=lot.price
+    spot=ReserveParkingSpot.query.filter_by(spot_id=spot_id).first()
+    if not spot:
+        return jsonify({'msg': 'Reserved Parking Spot not found'}), 404
+    user = User.query.get(spot.u_id)
+    vehicle=Vehicle.query.filter_by(u_id=user.u_id,spot_id=spot.spot_id).first()
+    hours= ((datetime.utcnow() - spot.start_time).total_seconds() // 3600)+1
+    cost= int(hours * price)
+    return jsonify({
+        'spot_id': spot.spot_id,
+        'u_id': spot.u_id,
+        'user_name': user.name if user else None,
+        'vehicle_no': vehicle.vehicle_no if vehicle else None,
+        'start_time': spot.start_time.isoformat(),
+        'cost': cost
+    }), 200
+
+@app.route('/admin_users', methods=['GET','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)
+def admin_users():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
+
+    users = User.query.all()
+    data = []
+    for user in users:
+        data.append({
+            'u_id': user.u_id,
+            'email': user.email,
+            'name': user.name,
+            'addr': user.addr,
+            'pin': user.pin
+        })
+    return jsonify(data), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)
