@@ -23,10 +23,11 @@ export default {
   },
   methods: {
     async logout() {
+      const token = localStorage.getItem('token')
       try {
-        const response = await axios.post('http://localhost:5000/logout', {
+        const response = await axios.post('http://localhost:5000/logout', {}, {
             headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+            Authorization: `Bearer ${token}`
           }
         })
         this.msg = response.data.msg

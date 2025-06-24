@@ -8,6 +8,9 @@ import Logout from './components/logout.vue'
 import adminDashboard from './components/adminDashboard.vue'  
 import EditLot from './components/editLot.vue'
 import AddLot from './components/addLot.vue' 
+import viewspot from './components/viewspot.vue'
+import viewreserveSpot from './components/adminReservespot.vue'
+import AdminUsers from './components/adminusers.vue'
 
 axios.defaults.headers.common['Content-Type'] = 'application/json'
 axios.defaults.headers.common['Accept'] = 'application/json'
@@ -50,6 +53,21 @@ const routes = [
     path: '/admin_addlot',
     name: 'AddLot',
     component: AddLot
+  },
+  {
+    path: '/admin_viewspot/:spot_id',
+    name: 'viewspot',
+    component: viewspot,
+  },
+  {
+    path:'/admin_reservespot',
+    name:'viewreserveSpot',
+    component: viewreserveSpot
+  },
+  {
+    path:'/admin_users',
+    name:'AdminUsers',
+    component: AdminUsers
   }
 ]
 

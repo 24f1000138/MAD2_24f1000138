@@ -9,7 +9,6 @@
             <router-link to="/admin_summary">Summary</router-link>
             <router-link to="/logout">Logout</router-link>
         </div>
-        <span><router-link to="/admin_profile" class="edit-profile">Edit Profile</router-link></span>
     </nav>
     <div class="admin-dashboard-content">
     <h2>Parking Lots</h2>
