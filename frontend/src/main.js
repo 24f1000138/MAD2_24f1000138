@@ -11,6 +11,7 @@ import AddLot from './components/addLot.vue'
 import viewspot from './components/viewspot.vue'
 import viewreserveSpot from './components/adminReservespot.vue'
 import AdminUsers from './components/adminusers.vue'
+import userDashboard from './components/userDashboard.vue'
 
 axios.defaults.headers.common['Content-Type'] = 'application/json'
 axios.defaults.headers.common['Accept'] = 'application/json'
@@ -68,6 +69,11 @@ const routes = [
     path:'/admin_users',
     name:'AdminUsers',
     component: AdminUsers
+  },
+  {
+    path: '/user_dashboard',
+    name: 'userDashboard',
+    component: userDashboard
   }
 ]
 
