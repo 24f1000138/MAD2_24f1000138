@@ -360,6 +360,166 @@ def admin_users():
         })
     return jsonify(data), 200
 
+@app.route('/user_dashboard', methods=['GET','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)
+def user_dashboard():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        user_id = int(current_user['sub'])
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'msg': 'User not found'}), 404
+
+        spots=ReserveParkingSpot.query.filter_by(u_id=user.u_id).all()
+        data = []
+        for spot in spots:
+            s=ParkingSpot.query.get(spot.spot_id)
+            loc= ParkingLot.query.get(s.lot_id).name
+            veh= Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id)
+            if veh.count() > 1:
+                for i in range(veh.count()):
+                    data.append({
+                        'r_id': spot.r_id,
+                        'loc' : loc,
+                        'veh_no': veh[i].vehicle_no,
+                        'stamp': spot.start_time.isoformat()
+                    })
+            else:
+                data.append({
+                    'r_id': spot.r_id,
+                    'loc' : loc,
+                    'veh_no': veh.vehicle_no if veh else None,
+                    'stamp': spot.start_time.isoformat()
+                })
+        return jsonify(data), 200
+
+@app.route('/user_search', methods=['GET','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)
+def user_search():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        user_id = int(current_user['sub'])
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'msg': 'User not found'}), 404
+        query = request.args.get('query', '').strip()
+        p_lots = ParkingLot.query.filter(
+            (ParkingLot.name.ilike(f'%{query}%')) |
+            (ParkingLot.pinc.ilike(f'%{query}%'))
+        ).all()
+
+        data = []
+        for lot in p_lots:
+            reserved_spots = ReserveParkingSpot.query.join(ParkingSpot).filter(ParkingSpot.lot_id == lot.lot_id).count()
+            count=lot.num-reserved_spots
+            data.append({
+                'lot_id': lot.lot_id,
+                'addr': lot.address,
+                'available': count,
+            })
+        return jsonify(data), 200
+
+@app.route('/user_book/<int:lot_id>', methods=['GET','POST','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)
+def user_book(lot_id):
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        user_id = int(current_user['sub'])
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'msg': 'User not found'}), 404
+
+        lot = ParkingLot.query.get(lot_id)
+        if not lot:
+            return jsonify({'msg': 'Parking Lot not found'}), 404
+        if request.method == 'GET':
+            spot = ParkingSpot.query.filter_by(lot_id=lot_id, status='A').first()
+            data=[{
+                'lot_id': lot.lot_id,
+                'spot_id': spot.spot_id if spot else None,
+                'user_id':user_id}]
+            
+            return jsonify(data), 200    
+    
+        if request.method == 'POST':
+            data = request.get_json()
+            lot_id = data.get('lot_id')
+            spot_id = data.get('spot_id')
+            user_id = data.get('u_id')
+            vehicle_no = data.get('vehicle_no')
+            if vehicle_no:
+                new=ReserveParkingSpot(
+                    spot_id=spot_id,
+                    u_id=user.u_id,
+                    start_time=datetime.utcnow(),
+                    end_time=None,
+                    cost=0
+                )
+                try:
+                    db.session.add(new)
+                    db.session.commit()
+                    if not Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot_id).first():
+                        new_vehicle = Vehicle(u_id=user.u_id, spot_id=spot_id, vehicle_no=vehicle_no)
+                        db.session.add(new_vehicle)
+                        db.session.commit()
+                    spot = ParkingSpot.query.get(spot_id)
+                    spot.status = 'O'
+                    db.session.commit()
+                    return jsonify({'msg': 'Booking successful'}), 201
+                except Exception as e:
+                    db.session.rollback()
+                    return jsonify({'msg': str(e)}), 500
+
+@app.route('/user_release/<int:r_id>', methods=['GET','POST','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)    
+def user_release(r_id):
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        user_id = int(current_user['sub'])
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'msg': 'User not found'}), 404
+
+        spot = ReserveParkingSpot.query.get(r_id)
+        if not spot or spot.u_id != user.u_id:
+            return jsonify({'msg': 'Reservation not found or access denied'}), 404
+
+        end_time = datetime.utcnow()
+        hours = ((end_time - spot.start_time).total_seconds() // 3600) + 1
+        s = ParkingSpot.query.get(spot.spot_id)
+        lot= ParkingLot.query.get(s.lot_id)
+        cost = int(hours * lot.price)
+        veh_no= Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).first()
+        if request.method == 'GET':
+            data=[{
+                'spot_id': spot.spot_id,
+                'veh_no': veh_no.vehicle_no if veh_no else None,
+                'start_time': spot.start_time.isoformat(),
+                'end_time': end_time.isoformat(),
+                'cost': cost
+            }]
+            return jsonify(data), 200
+        if request.method == 'POST':
+            if veh_no:
+                spot.end_time = end_time
+                spot.cost = cost
+                s.status = 'A'
+                veh_no.spot_id = None
+                db.session.commit()
+
+            return jsonify({'msg': 'Spot released successfully', 'cost': cost}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
