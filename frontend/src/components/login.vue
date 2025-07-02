@@ -7,7 +7,7 @@
       <label for="password">Password:</label>
       <input type="password" v-model="password" placeholder="Password" required />
       <button type="submit">Submit</button>
-      <button @click="$router.push('/register')">Register</button>
+      <button @click="$router.push('/register')">Create an Account?</button>
       <p v-if="msg" :class="{ error: error, success: !error }">{{ msg }}</p>
     </form>
   </div>

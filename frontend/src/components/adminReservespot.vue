@@ -11,7 +11,7 @@
       <label for="vno">Vehicle Number:</label>
       <input type="text" v-model="spot.vehicle_no" placeholder="spot.vehicle_no" readonly />
       <label for="date">Date/Timeof Parking: </label>
-      <input type="datetime" v-model="spot.start_time" placeholder="spot.start_time" readonly />
+      <input type="text" v-model="spot.start_time" placeholder="spot.start_time" readonly />
       <label for="cost">Est. Parking Cost: </label>
       <input type="number" v-model="spot.cost" placeholder="spot.cost" readonly />
       <button @click="$router.push('/admin_dashboard')">Cancel</button>
@@ -50,6 +50,7 @@ export default {
           }
         })
         this.spot = response.data
+        this.spot.start_time = new Date(response.data.start_time).toLocaleString()
       } catch (err) {
         this.msg = err.response?.data?.msg || 'Failed to fetch reserved spot details'
         this.error = true
@@ -105,5 +106,18 @@ button:hover {
 }
 .success {
   color: green;
+}
+input {
+  margin-bottom: 12px;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+label {
+  font-weight: 500;
+  display: block;
+  margin-bottom: 4px;
+  color: #555;
 }
 </style>

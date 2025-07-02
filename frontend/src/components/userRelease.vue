@@ -67,6 +67,8 @@ export default {
       }
     })
     this.id = response.data[0]
+    this.id.start_time = new Date(this.id.start_time).toLocaleString()
+    this.id.end_time = new Date(this.id.end_time).toLocaleString()
   } catch (err) {
     this.msg = err.response?.data?.msg || 'Failed to fetch releasing info'
     this.error = true

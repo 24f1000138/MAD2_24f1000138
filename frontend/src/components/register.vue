@@ -13,6 +13,7 @@
       <label for="pin">PIN:</label>
       <input type="text" v-model="pin" placeholder="PIN" required />
       <button type="submit">Submit</button>
+      <button @click="$router.push('/login')">Already have an Account?</button>
       <p v-if="msg" :class="{ error: error, success: !error }">{{ msg }}</p>
     </form>
   </div>

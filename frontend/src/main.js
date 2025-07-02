@@ -12,6 +12,10 @@ import viewspot from './components/viewspot.vue'
 import viewreserveSpot from './components/adminReservespot.vue'
 import AdminUsers from './components/adminusers.vue'
 import userDashboard from './components/userDashboard.vue'
+import userProfile from './components/userProfile.vue'
+import userHistory from './components/userHistory.vue'
+import userRelease from './components/userRelease.vue'
+import UserBook from './components/userbook.vue'
 
 axios.defaults.headers.common['Content-Type'] = 'application/json'
 axios.defaults.headers.common['Accept'] = 'application/json'
@@ -61,7 +65,7 @@ const routes = [
     component: viewspot,
   },
   {
-    path:'/admin_reservespot',
+    path:'/admin_reservespot/:spot_id',
     name:'viewreserveSpot',
     component: viewreserveSpot
   },
@@ -74,6 +78,26 @@ const routes = [
     path: '/user_dashboard',
     name: 'userDashboard',
     component: userDashboard
+  },
+  {
+    path: '/user_profile',
+    name: 'userProfile',
+    component: userProfile
+  },
+  {
+    path: '/user_history',
+    name: 'userHistory',
+    component: userHistory
+  },
+  {
+    path: '/user_release/:r_id',
+    name: 'userRelease',
+    component: userRelease
+  },
+  {
+    path: '/user_book/:lot_id',
+    name: 'UserBook',
+    component: UserBook
   }
 ]
 

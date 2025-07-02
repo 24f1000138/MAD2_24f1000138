@@ -1,7 +1,7 @@
 <template>
   <div class="logout-container">
     <h2>Logout</h2>
-    <form @submit.prevent="register">
+    <form @submit.prevent="logout">
       <p>Do you want to logout?</p>
       <button @click="logout">Logout</button>
       <button @click="$router.back()">Back</button>

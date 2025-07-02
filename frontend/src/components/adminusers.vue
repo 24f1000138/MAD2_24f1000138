@@ -87,14 +87,12 @@ export default {
   gap: 15px;
 }
 
-.nav-links a,
-.edit-profile {
+.nav-links a {
   color: white;
   text-decoration: none;
   font-weight: bold;
 }
-.nav-links a:hover,
-.edit-profile:hover {
+.nav-links a:hover{
   text-decoration: underline;
 }
 h2 {

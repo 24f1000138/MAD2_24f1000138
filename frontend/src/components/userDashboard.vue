@@ -8,6 +8,7 @@
             <router-link to="/user_summary">Summary</router-link>
             <router-link to="/logout">Logout</router-link>
         </div>
+        <span class="edit-profile"><router-link to="/user_profile">Edit Profile</router-link></span>
     </nav>
     <div class="users-content">
     <h2>Recent Parking History</h2>
@@ -90,6 +91,12 @@ export default {
         }
       })
       this.rspots = response.data
+      this.rspots.forEach(spot => {
+        spot.stamp = new Date(spot.stamp).toLocaleString()
+        if (spot.end_time) {
+          spot.end_time = new Date(spot.end_time).toLocaleString()
+        }
+      })
     },
   async search() {
       const token = localStorage.getItem('token')
@@ -141,7 +148,14 @@ export default {
   color: #2c3e50;
   font-weight: bold;
 }
-
+.edit-profile{
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+.edit-profile:hover{
+  text-decoration: underline;
+}
 .nav-links a:hover {
   text-decoration: underline;
 }
