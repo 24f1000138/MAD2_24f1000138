@@ -67,8 +67,8 @@ class ReserveParkingSpot(db.Model):
     spot_id = db.Column(db.Integer, db.ForeignKey('parking_spot.spot_id'), nullable=False)
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'), nullable=False)
     start_time = db.Column(db.DateTime, nullable=False)
-    end_time = db.Column(db.DateTime, nullable=False)
-    cost= db.Column(db.Integer, nullable=False)
+    end_time = db.Column(db.DateTime, nullable=True)
+    cost= db.Column(db.Integer, nullable=True)
 
 class Vehicle(db.Model):
     __tablename__ = 'vehicle'
@@ -141,13 +141,10 @@ def login():
         return jsonify({'msg': 'Invalid credentials'}), 401
 
  
-@app.route('/logout', methods=['POST','OPTIONS'])
+@app.route('/logout', methods=['GET','POST','OPTIONS'])
 @jwt_required()
 @cross_origin() 
 def logout():
-    current_user = get_jwt()
-    if not current_user.get('admin'):
-        return jsonify({'msg': 'Access denied'}), 403
     return jsonify({ 
             'msg': 'Logout successful'
         }), 200
@@ -239,8 +236,20 @@ def admin_editlot(lot_id):
         lot.price = data.get('price', lot.price)
         lot.address = data.get('address', lot.address)
         lot.pinc = data.get('pinc', lot.pinc)
+        n=lot.num
         lot.num = data.get('num', lot.num)
         try:
+            if lot.num > n:
+                for i in range(n, lot.num):
+                    new_spot = ParkingSpot(lot_id=lot.lot_id, status='A')
+                    db.session.add(new_spot)
+            elif lot.num < n:
+                o_spots=ParkingSpot.query.filter_by(lot_id=lot.lot_id, status='O').count()
+                if o_spots == lot.num:
+                    return jsonify({'msg': 'Cannot reduce Parking Lot with reserved spots'}), 400
+                available_spots = ParkingSpot.query.filter_by(lot_id=lot.lot_id, status='A').limit(n - lot.num).all()
+                for spot in available_spots:
+                    db.session.delete(spot)
             db.session.commit()
             return jsonify({'msg': 'Parking Lot updated successfully'}), 200
         except Exception as e:
@@ -378,22 +387,24 @@ def user_dashboard():
         for spot in spots:
             s=ParkingSpot.query.get(spot.spot_id)
             loc= ParkingLot.query.get(s.lot_id).name
-            veh= Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id)
-            if veh.count() > 1:
-                for i in range(veh.count()):
+            veh= Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).all()
+            veh1= Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).count()
+            if (spot.end_time is None) or (spot.start_time < datetime.utcnow()- timedelta(days=5)):
+                if veh1 > 1:
+                    for i in range(veh1):
+                        data.append({
+                            'r_id': spot.r_id,
+                            'loc' : loc,
+                            'veh_no': veh[i].vehicle_no,
+                            'stamp': spot.start_time.isoformat()
+                        })
+                else:
                     data.append({
                         'r_id': spot.r_id,
                         'loc' : loc,
-                        'veh_no': veh[i].vehicle_no,
+                        'veh_no': veh[0].vehicle_no if veh else None,
                         'stamp': spot.start_time.isoformat()
                     })
-            else:
-                data.append({
-                    'r_id': spot.r_id,
-                    'loc' : loc,
-                    'veh_no': veh.vehicle_no if veh else None,
-                    'stamp': spot.start_time.isoformat()
-                })
         return jsonify(data), 200
 
 @app.route('/user_search', methods=['GET','OPTIONS'])
@@ -437,24 +448,25 @@ def user_book(lot_id):
         user = User.query.get(user_id)
         if not user:
             return jsonify({'msg': 'User not found'}), 404
-
+        
         lot = ParkingLot.query.get(lot_id)
+        spot = ParkingSpot.query.filter_by(lot_id=lot_id, status='A').first()
         if not lot:
             return jsonify({'msg': 'Parking Lot not found'}), 404
         if request.method == 'GET':
-            spot = ParkingSpot.query.filter_by(lot_id=lot_id, status='A').first()
             data=[{
                 'lot_id': lot.lot_id,
                 'spot_id': spot.spot_id if spot else None,
-                'user_id':user_id}]
+                'u_id':user_id}]
             
             return jsonify(data), 200    
     
         if request.method == 'POST':
+
             data = request.get_json()
-            lot_id = data.get('lot_id')
-            spot_id = data.get('spot_id')
-            user_id = data.get('u_id')
+            lot_id = data.get('lot_id', lot.lot_id)
+            spot_id = data.get('spot_id', spot.spot_id)
+            user_id = data.get('u_id', user.u_id)
             vehicle_no = data.get('vehicle_no')
             if vehicle_no:
                 new=ReserveParkingSpot(
@@ -520,6 +532,88 @@ def user_release(r_id):
                 db.session.commit()
 
             return jsonify({'msg': 'Spot released successfully', 'cost': cost}), 200
+
+@app.route('/user_history', methods=['GET','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)
+def user_history():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        user_id = int(current_user['sub'])
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'msg': 'User not found'}), 404
+
+        spots = ReserveParkingSpot.query.filter_by(u_id=user.u_id).order_by(ReserveParkingSpot.end_time.desc()).all()
+        data = []
+        for spot in spots:
+            if spot.end_time is not None:
+                s = ParkingSpot.query.get(spot.spot_id)
+                loc = ParkingLot.query.get(s.lot_id).name
+                veh = Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).all()
+                veh1 = Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).count()
+                if veh1 > 1:
+                    for i in range(veh1):
+                        data.append({
+                            'r_id': spot.r_id,
+                            'loc': loc,
+                            'veh_no': veh[i].vehicle_no,
+                            'start_time': spot.start_time.isoformat(),
+                            'end_time': spot.end_time.isoformat(),
+                            'cost': spot.cost
+                        })
+                else:
+                    data.append({
+                        'r_id': spot.r_id,
+                        'loc': loc,
+                        'veh_no': veh[0].vehicle_no if veh else None,
+                        'start_time': spot.start_time.isoformat(),
+                        'end_time': spot.end_time.isoformat() if spot.end_time else None,
+                        'cost': spot.cost
+                    })
+        return jsonify(data), 200
+
+@app.route('/user_profile', methods=['GET','POST','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)
+def user_profile():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        user_id = int(current_user['sub'])
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'msg': 'User not found'}), 404
+
+        if request.method == 'GET':
+            data = {
+                'name': user.name,
+                'email': user.email,
+                'addr': user.addr,
+                'pin': user.pin
+            }
+            return jsonify(data), 200
+
+        if request.method == 'POST':
+            data = request.get_json()
+            user.name = data.get('name', user.name)
+            email = data.get('email', user.email) 
+            e_user = User.query.filter(User.email == email, User.u_id != user.u_id).first()
+            if e_user:
+                return jsonify({'msg': 'Email already exists'}), 409
+            else:
+                user.email = email
+            user.addr = data.get('addr', user.addr)
+            user.pin = data.get('pin', user.pin)
+            try:
+                db.session.commit()
+                return jsonify({'msg': 'Profile updated successfully'}), 200
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'msg': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
