@@ -2,9 +2,10 @@ from flask import Flask,request,session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import (
-    JWTManager, create_access_token, jwt_required, get_jwt
+    JWTManager, create_access_token, jwt_required, get_jwt, get_jwt_identity
 )
-from datetime import datetime, timedelta,date
+from datetime import datetime, timedelta
+from sqlalchemy import case
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -23,7 +24,6 @@ jwt = JWTManager(app)
 
 base_dir=os.path.dirname(os.path.abspath(__file__))
 static_dir=os.path.join(base_dir,'static')
-
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -74,8 +74,67 @@ class Vehicle(db.Model):
     __tablename__ = 'vehicle'
     v_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'), nullable=False)
-    spot_id = db.Column(db.Integer, db.ForeignKey('rparking_spot.spot_id'), nullable=True)
+    spot_id = db.Column(db.Integer, db.ForeignKey('rparking_spot.spot_id'), nullable=False)
     vehicle_no = db.Column(db.String(10), nullable=False)
+
+def graph_1():
+    data= db.session.query(
+        ParkingLot.name,
+        func.sum(ReserveParkingSpot.cost)
+    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).join(ReserveParkingSpot, ParkingSpot.spot_id == ReserveParkingSpot.spot_id).group_by(ParkingLot.name).all()
+    if not data:
+        return
+    lot_names = [row[0] for row in data]
+    lot_costs = [row[1] for row in data]
+    pie= plt.figure(figsize=(10, 6))
+    plt.pie(lot_costs, labels=lot_names, autopct='%1.1f%%', startangle=140)
+    plt.title('Revenue from each Parking Lot')
+    pie_path = os.path.join(static_dir, 'lot_earnings.png')
+    pie.savefig(pie_path)
+    plt.close()
+    
+def graph_2():
+    data=db.session.query(
+        ParkingLot.name,
+        func.sum(case((ParkingSpot.status == 'A', 1), else_=0)).label('available'),
+        func.sum(case((ParkingSpot.status == 'O', 1), else_=0)).label('occupied')
+    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).group_by(ParkingLot.name).all()
+    if not data:
+        return
+    lot_names = [row[0] for row in data]
+    lot_a = [row[1] for row in data]
+    lot_o = [row[2] for row in data]
+    bar = plt.figure(figsize=(10, 6))
+    plt.bar([i - 0.175 for i in range(len(lot_names))], lot_a, width=0.35, label='Available', color='green')
+    plt.bar([i + 0.175 for i in range(len(lot_names))], lot_o, width=0.35, label='Occupied', color='tomato')
+
+    plt.xlabel('Parking Lots')
+    plt.ylabel('Number of Spots')
+    plt.title('Available Parking Spots in Each Lot')
+    plt.xticks(range(len(lot_names)), lot_names, rotation=45)
+    plt.legend()
+    bar_path = os.path.join(static_dir, 'lot_availability.png')
+    bar.savefig(bar_path)
+    plt.close()
+
+def graph_3():
+    data= db.session.query(
+        ParkingLot.name,
+        func.sum(case((ReserveParkingSpot.end_time.isnot(None), 1),else_=0)).label('reservation_count')
+    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).join(ReserveParkingSpot, ParkingSpot.spot_id == ReserveParkingSpot.spot_id).group_by(ParkingLot.name).all()
+    if not data:
+        return
+    lot_names = [row[0] for row in data]
+    lot_counts = [row[1] for row in data]
+    bar = plt.figure(figsize=(10, 6))
+    plt.bar(lot_names, lot_counts, color='blue')
+    plt.xlabel('Parking Lots')
+    plt.ylabel('Number of Reservations')
+    plt.title('Summary on already used parking spots')
+    plt.xticks(rotation=45)
+    bar_path = os.path.join(static_dir, 'lot_reservations.png')
+    bar.savefig(bar_path)
+    plt.close()
 
 @app.before_request
 def create_tables():
@@ -162,11 +221,11 @@ def admin_dashboard():
     if not current_user.get('admin'):
         return jsonify({'msg': 'Access denied'}), 403
 
-    p_lots = ParkingLot.query.all()
+    p_lots = ParkingLot.query.filter(~ParkingLot.name.ilike('__deleted__%')).all()
     data = []
     for lot in p_lots:
         spots= ParkingSpot.query.filter_by(lot_id=lot.lot_id).all()
-        reserved_spots = ReserveParkingSpot.query.join(ParkingSpot).filter(ParkingSpot.lot_id == lot.lot_id).count()
+        reserved_spots = ReserveParkingSpot.query.join(ParkingSpot).filter(ParkingSpot.lot_id == lot.lot_id, ReserveParkingSpot.end_time == None).count()
         data.append({
             'lot_id': lot.lot_id,
             'name': lot.name,
@@ -274,8 +333,9 @@ def admin_deletelot(lot_id):
     if o_spots > 0:
         return jsonify({'msg': 'Cannot delete Parking Lot with reserved spots'}), 400
     try:
-        ParkingSpot.query.filter_by(lot_id=lot.lot_id).delete()
-        db.session.delete(lot)
+        for spot in ParkingSpot.query.filter_by(lot_id=lot.lot_id).all():
+            spot.status = 'X'
+        lot.name =  f"__deleted__{lot.name}"
         db.session.commit()
         return jsonify({'msg': 'Parking Lot deleted successfully'}), 200
     except Exception as e:
@@ -319,6 +379,44 @@ def admin_viewspot(spot_id):
             'status': spot.status
         }), 200
 
+@app.route('/admin_summary', methods=['GET','OPTIONS'] )
+@cross_origin()
+@jwt_required(optional=True)
+def admin_summary():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
+    
+    graph_1()
+    graph_2()
+    return jsonify({
+        'msg': 'Summary graphs generated successfully',
+        'revenue_graph': '/static/lot_earnings.png',
+        'availability_graph': '/static/lot_availability.png'
+    }), 200
+
+@app.route('/user_summary', methods=['GET','OPTIONS'])
+@cross_origin()
+@jwt_required(optional=True)
+def user_summary():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    print(current_user)
+    if not current_user.get('admin'):
+        user_id = current_user.get("sub")
+        user = User.query.get(int(user_id))
+        if not user:
+            return jsonify({'msg': 'User not found'}), 404
+        
+        graph_3()
+        return jsonify({
+            'msg': 'Summary graphs generated successfully',
+            'reservation_graph': '/static/lot_reservations.png'
+        }), 200
+
 @app.route('/admin_reservespot/<int:spot_id>', methods=['GET','OPTIONS'])
 @cross_origin()
 @jwt_required(optional=True)
@@ -336,8 +434,12 @@ def admin_reservespot(spot_id):
         return jsonify({'msg': 'Reserved Parking Spot not found'}), 404
     user = User.query.get(spot.u_id)
     vehicle=Vehicle.query.filter_by(u_id=user.u_id,spot_id=spot.spot_id).first()
-    hours= ((datetime.utcnow() - spot.start_time).total_seconds() // 3600)+1
-    cost= int(hours * price)
+    if spot.end_time:
+        hours = ((spot.end_time - spot.start_time).total_seconds() // 3600) + 1
+        cost = int(hours * price)
+    else:
+        hours = ((datetime.utcnow() - spot.start_time).total_seconds() // 3600) + 1
+        cost = int(hours * price)
     return jsonify({
         'spot_id': spot.spot_id,
         'u_id': spot.u_id,
@@ -421,13 +523,13 @@ def user_search():
             return jsonify({'msg': 'User not found'}), 404
         query = request.args.get('query', '').strip()
         p_lots = ParkingLot.query.filter(
-            (ParkingLot.name.ilike(f'%{query}%')) |
+            ((ParkingLot.name.ilike(f'%{query}%')) & (~ParkingLot.name.ilike('__deleted__%'))) |
             (ParkingLot.pinc.ilike(f'%{query}%'))
         ).all()
 
         data = []
         for lot in p_lots:
-            reserved_spots = ReserveParkingSpot.query.join(ParkingSpot).filter(ParkingSpot.lot_id == lot.lot_id).count()
+            reserved_spots = ReserveParkingSpot.query.join(ParkingSpot).filter(ParkingSpot.lot_id == lot.lot_id, ReserveParkingSpot.end_time == None).count()
             count=lot.num-reserved_spots
             data.append({
                 'lot_id': lot.lot_id,
@@ -469,6 +571,16 @@ def user_book(lot_id):
             user_id = data.get('u_id', user.u_id)
             vehicle_no = data.get('vehicle_no')
             if vehicle_no:
+                if not vehicle_no.strip():
+                    return jsonify({'msg': 'Vehicle number is required'}), 400
+                
+                a_veh=db.session.query(Vehicle).join(ReserveParkingSpot).filter(Vehicle.u_id == user.u_id,Vehicle.vehicle_no == vehicle_no,Vehicle.spot_id == ReserveParkingSpot.spot_id,ReserveParkingSpot.end_time == None).first()
+                if a_veh:
+                    return jsonify({'msg': 'Vehicle already booked a spot and in use'}), 409
+                if not Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot_id).first():
+                        new_vehicle = Vehicle(u_id=user.u_id, spot_id=spot_id, vehicle_no=vehicle_no)
+                        db.session.add(new_vehicle)
+                        db.session.commit()
                 new=ReserveParkingSpot(
                     spot_id=spot_id,
                     u_id=user.u_id,
@@ -479,10 +591,6 @@ def user_book(lot_id):
                 try:
                     db.session.add(new)
                     db.session.commit()
-                    if not Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot_id).first():
-                        new_vehicle = Vehicle(u_id=user.u_id, spot_id=spot_id, vehicle_no=vehicle_no)
-                        db.session.add(new_vehicle)
-                        db.session.commit()
                     spot = ParkingSpot.query.get(spot_id)
                     spot.status = 'O'
                     db.session.commit()
@@ -499,8 +607,8 @@ def user_release(r_id):
         return jsonify({'msg': 'CORS preflight'}), 200
     current_user = get_jwt()
     if not current_user.get('admin'):
-        user_id = int(current_user['sub'])
-        user = User.query.get(user_id)
+        user_id = current_user.get("sub")
+        user = User.query.get(int(user_id))
         if not user:
             return jsonify({'msg': 'User not found'}), 404
 
@@ -528,7 +636,6 @@ def user_release(r_id):
                 spot.end_time = end_time
                 spot.cost = cost
                 s.status = 'A'
-                veh_no.spot_id = None
                 db.session.commit()
 
             return jsonify({'msg': 'Spot released successfully', 'cost': cost}), 200
@@ -554,6 +661,7 @@ def user_history():
                 loc = ParkingLot.query.get(s.lot_id).name
                 veh = Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).all()
                 veh1 = Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).count()
+            
                 if veh1 > 1:
                     for i in range(veh1):
                         data.append({
@@ -596,7 +704,6 @@ def user_profile():
                 'pin': user.pin
             }
             return jsonify(data), 200
-
         if request.method == 'POST':
             data = request.get_json()
             user.name = data.get('name', user.name)
