@@ -12,6 +12,7 @@
     </nav>
     <div class="admin-dashboard-content">
     <h2>Parking Lots</h2>
+    <div class="lot-container">
     <div v-for="lot in lots" :key="lot.lot_id" class="lot-card">
       <h3>{{ lot.name }}</h3>
       <span><button @click="editLot(lot.lot_id)">Edit</button>
@@ -23,6 +24,7 @@
           <span>{{ spot.status }}</span>
         </div>
       </div>
+    </div>
     </div>
     <button @click="addLot">Add Lot</button>
     </div>
@@ -100,12 +102,19 @@ export default {
   margin-bottom: 20px;
 }
 .admin-dashboard-content {
-  max-width: 400px;
+  max-width: 100%;
   margin: auto;
   padding: auto;
   align-content: center;
 
 }
+.lot-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px; 
+}
+
 .nav-links {
   display: flex;
   gap: 15px;

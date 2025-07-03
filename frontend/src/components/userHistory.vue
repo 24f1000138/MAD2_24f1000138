@@ -8,6 +8,7 @@
             <router-link to="/user_summary">Summary</router-link>
             <router-link to="/logout">Logout</router-link>
         </div>
+        <span class="edit-profile"><router-link to="/user_profile">Edit Profile</router-link></span>
     </nav>
     <div class="users-content"></div>
     <h2>Full User History</h2>
@@ -55,6 +56,10 @@ export default {
         }
       })
       this.rspots = response.data
+      this.rspots.forEach(spot => {
+        spot.start_time = new Date(spot.start_time).toLocaleString()
+        spot.end_time = new Date(spot.end_time).toLocaleString()
+      })
     },
   },
   mounted() {
