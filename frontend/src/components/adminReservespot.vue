@@ -47,7 +47,8 @@ export default {
         const response = await axios.get(`http://localhost:5000/admin_reservespot/${spotid}`, {
           headers: {
             Authorization: `Bearer ${token}`
-          }
+          },
+          withCredentials: true
         })
         this.spot = response.data
         this.spot.start_time = new Date(response.data.start_time).toLocaleString()

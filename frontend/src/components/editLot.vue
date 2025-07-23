@@ -46,7 +46,8 @@ export default {
         const response = await axios.get(`http://localhost:5000/admin_editlot/${lotid}`, {
           headers: {
             Authorization: `Bearer ${token}`
-          }
+          },
+          withCredentials: true
         })
         this.lot = response.data
       } catch (err) {
@@ -67,7 +68,8 @@ export default {
           num: this.lot.num
         }, {headers: {
           Authorization: `Bearer ${token}`
-        }
+        },
+          withCredentials: true
       })
         this.msg = response.data.msg
         this.error = false

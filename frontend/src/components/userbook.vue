@@ -48,7 +48,8 @@ export default {
         }, {
           headers: {
             Authorization: `Bearer ${token}`
-          }})
+          },
+          withCredentials: true})
         this.msg = response.data.msg
         this.error = false
         setTimeout(() => {
@@ -66,7 +67,8 @@ export default {
     const response = await axios.get(`http://localhost:5000/user_book/${lotid}`, {
       headers: {
         Authorization: `Bearer ${token}`
-      }
+      },
+      withCredentials: true
     })
     this.id = response.data[0]
   } catch (err) {

@@ -88,7 +88,8 @@ export default {
       const response = await axios.get('http://localhost:5000/user_dashboard', {
         headers: {
           Authorization: `Bearer ${token}`,
-        }
+        },
+        withCredentials: true
       })
       this.rspots = response.data
       this.rspots.forEach(spot => {
@@ -103,7 +104,8 @@ export default {
       const response = await axios.get(`http://localhost:5000/user_search?query=${this.searchQuery}`, {
         headers: {
           Authorization: `Bearer ${token}`,
-        }
+        },
+        withCredentials: true
       })
       this.spots = response.data
     },

@@ -3,7 +3,7 @@
     <nav class="admin-nav">
         <span class="welcome">Welcome Admin</span>
         <div class="nav-links">
-            <router-link to="/">Home</router-link>
+            <router-link to="/admin_dashboard">Home</router-link>
             <router-link to="/admin_users">Users</router-link>
             <router-link to="/admin_search">Search</router-link>
             <router-link to="/admin_summary">Summary</router-link>
@@ -49,7 +49,8 @@ export default {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json' 
-        }
+        },
+        withCredentials: true
       })
       this.lots = response.data
     },

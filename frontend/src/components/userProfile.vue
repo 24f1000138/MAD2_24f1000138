@@ -41,7 +41,8 @@ export default {
         const response = await axios.get('http://localhost:5000/user_profile', {
           headers: {
             Authorization: `Bearer ${token}`
-          }
+          },
+          withCredentials: true
         })
         this.user = response.data
       } catch (err) {
@@ -60,7 +61,8 @@ export default {
           pin: this.user.pin
         }, {headers: {
           Authorization: `Bearer ${token}`
-        }
+        },
+          withCredentials: true
       })
         this.msg = response.data.msg
         this.error = false

@@ -35,7 +35,8 @@ export default {
         const response = await axios.get(`http://localhost:5000/admin_viewspot/${spotid}`, {
           headers: {
             Authorization: `Bearer ${token}`
-          }
+          },
+          withCredentials: true
         })
         this.spot = response.data
       } catch (err) {
@@ -49,7 +50,8 @@ export default {
         await axios.delete(`http://localhost:5000/admin_viewspot/${spot_id}`, {
           headers: {
             Authorization: `Bearer ${token}`
-          }
+          },
+          withCredentials: true
         })
         this.$router.push('/admin_dashboard')
       } catch (error) {

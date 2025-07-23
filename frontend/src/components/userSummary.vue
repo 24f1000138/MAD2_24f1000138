@@ -35,7 +35,8 @@ export default {
       axios.get('http://localhost:5000/user_summary', {
           headers: {
             Authorization: `Bearer ${token}`
-          }
+          },
+          withCredentials: true
         })
         .then(response => {
           this.reservationGraph = 'http://localhost:5000'+ response.data.reservation_graph + '?t=' + new Date().getTime();

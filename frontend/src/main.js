@@ -18,6 +18,7 @@ import userRelease from './components/userRelease.vue'
 import UserBook from './components/userbook.vue'
 import AdminSummary from './components/adminSummary.vue'
 import UserSummary from './components/userSummary.vue'
+import AdminSearch from './components/adminSearch.vue'
 
 axios.defaults.headers.common['Content-Type'] = 'application/json'
 axios.defaults.headers.common['Accept'] = 'application/json'
@@ -110,6 +111,11 @@ const routes = [
     path: '/user_summary',
     name: 'UserSummary',
     component: UserSummary
+  },
+  {
+    path: '/admin_search',
+    name: 'AdminSearch',
+    component: AdminSearch
   }
 ]
 

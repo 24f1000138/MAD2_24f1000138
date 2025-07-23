@@ -36,7 +36,8 @@ export default {
       axios.get('http://localhost:5000/admin_summary', {
         headers: {
           Authorization: `Bearer ${token}`
-        }
+        },
+        withCredentials: true
       })
         .then(response => {
           this.revenueGraph = 'http://localhost:5000'+ response.data.revenue_graph + '?t=' + new Date().getTime();

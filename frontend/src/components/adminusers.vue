@@ -52,7 +52,8 @@ export default {
       const response = await axios.get('http://localhost:5000/admin_users', {
         headers: {
           Authorization: `Bearer ${token}`,
-        }
+        },
+        withCredentials: true
       })
       this.users = response.data
     },

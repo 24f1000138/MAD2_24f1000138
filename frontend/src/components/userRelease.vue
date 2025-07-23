@@ -46,7 +46,8 @@ export default {
         const response = await axios.post(`http://localhost:5000/user_release/${rid}`, {}, {
           headers: {
             Authorization: `Bearer ${token}`
-          }})
+          },
+          withCredentials: true})
         this.msg = response.data.msg
         this.error = false
         setTimeout(() => {
@@ -64,7 +65,8 @@ export default {
     const response = await axios.get(`http://localhost:5000/user_release/${r_id}`, {
       headers: {
         Authorization: `Bearer ${token}`
-      }
+      },
+      withCredentials: true
     })
     this.id = response.data[0]
     this.id.start_time = new Date(this.id.start_time).toLocaleString()

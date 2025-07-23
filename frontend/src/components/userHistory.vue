@@ -53,7 +53,8 @@ export default {
       const response = await axios.get('http://localhost:5000/user_history', {
         headers: {
           Authorization: `Bearer ${token}`,
-        }
+        },
+        withCredentials: true
       })
       this.rspots = response.data
       this.rspots.forEach(spot => {
