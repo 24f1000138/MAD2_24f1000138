@@ -32,6 +32,7 @@
         </tr>
       </tbody>
     </table>
+    <button @click="triggerCSV">Trigger (CSV)</button>
     </div>
   </div>
 </template> 
@@ -57,6 +58,21 @@ export default {
       })
       this.users = response.data
     },
+    async triggerCSV() {
+      const token = localStorage.getItem('token')
+  try {
+    const response = await fetch('http://localhost:5000/trigger_csv', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+    alert(data.message);
+  } catch (err) {
+    console.error('Error:', err);
+  }
+    }
   },
   mounted() {
     this.fetchUsers()

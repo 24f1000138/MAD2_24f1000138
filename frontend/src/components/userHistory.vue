@@ -34,6 +34,7 @@
         </tr>
       </tbody>
     </table>
+    <button @click="triggerCSV">Trigger and Download (CSV)</button>
     </div>
 </template> 
 
@@ -62,6 +63,46 @@ export default {
         spot.end_time = new Date(spot.end_time).toLocaleString()
       })
     },
+    async triggerCSV() {
+      const userId = this.rspots[0].u_id
+  try {
+    const res = await fetch(`http://localhost:5000/trigger_csv/${userId}`, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + localStorage.getItem('token'),
+      },
+    });
+    const data = await res.json();
+    alert(data.message);
+
+    let attempts = 0;
+    const maxAttempts = 10;
+    const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+    let fileReady = false;
+
+    while (attempts < maxAttempts && !fileReady) {
+      await delay(3000); 
+      const check = await fetch(`http://localhost:5000/check_csv/${userId}`, {
+        headers: {
+          Authorization: 'Bearer ' + localStorage.getItem('token'),
+        },
+      });
+      const status = await check.json();
+      if (status.ready) {
+        fileReady = true;
+        break;
+      }
+      attempts++;
+    }
+    if (fileReady) {
+      window.open(`http://localhost:5000/download_csv/${userId}`, '_blank');
+    } else {
+      alert("CSV not ready. Please try again later.");
+    }
+  } catch (err) {
+    console.error('Error:', err);
+  }
+    }
   },
   mounted() {
     this.fetchHistory()
