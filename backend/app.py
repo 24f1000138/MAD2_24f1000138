@@ -1,4 +1,5 @@
-from flask import Flask,request,session, jsonify
+import celery
+from flask import Flask,request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import (
@@ -11,10 +12,21 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sqlalchemy.sql import func
 import os
-from flask_cors import CORS,cross_origin
+from flask_cors import CORS
+from flask_caching import Cache
+from celery import Celery
+from celery.schedules import crontab
+from flask_mail import Mail, Message
+import tempfile
+import csv
+from io import StringIO
+import pytz
+
+IST = pytz.timezone('Asia/Kolkata')
+os.add_dll_directory(r"C:\GTK3\bin")
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, resources={r"/*": {"origins": "http://localhost:5173"}})
+CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['JWT_SECRET_KEY'] = 'your-jwt-secret-key'
@@ -22,6 +34,40 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
+app.config['CACHE_TYPE'] = 'RedisCache'
+app.config['CACHE_REDIS_HOST'] = 'localhost'
+app.config['CACHE_REDIS_PORT'] = 6379
+app.config['CACHE_REDIS_DB'] = 0
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+cache= Cache(app)
+
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'mangaimathimk@gmail.com'
+app.config['MAIL_PASSWORD'] = 'wbzf kzpy qrkc xvkz'
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        backend='redis://localhost:6379/1',
+        broker='redis://localhost:6379/0'
+    )
+    celery.conf.update(app.config)
+    TaskBase = celery.Task
+    celery.conf.timezone = 'Asia/Kolkata'
+    celery.conf.enable_utc = False
+
+    class ContextTask(TaskBase):
+        abstract = True
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+    celery.Task = ContextTask
+    return celery
+
+celery = make_celery(app)
+mail= Mail(app)
 base_dir=os.path.dirname(os.path.abspath(__file__))
 static_dir=os.path.join(base_dir,'static')
 
@@ -69,21 +115,180 @@ class ReserveParkingSpot(db.Model):
     start_time = db.Column(db.DateTime, nullable=False)
     end_time = db.Column(db.DateTime, nullable=True)
     cost= db.Column(db.Integer, nullable=True)
+    vehicle_no= db.Column(db.String(10), db.ForeignKey('vehicle.vehicle_no'), nullable=False)
 
 class Vehicle(db.Model):
     __tablename__ = 'vehicle'
     v_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     u_id = db.Column(db.Integer, db.ForeignKey('user.u_id'), nullable=False)
-    spot_id = db.Column(db.Integer, db.ForeignKey('rparking_spot.spot_id'), nullable=False)
+    r_id = db.Column(db.Integer, db.ForeignKey('rparking_spot.r_id'), nullable=True)
     vehicle_no = db.Column(db.String(10), nullable=False)
+
+CELERYBEAT_SCHEDULE = {
+    'daily_rem':{
+        'task': 'tasks.send_reminder',
+        'schedule': crontab(hour=9, minute=31), 
+    },
+    'monthly_rep': {
+        'task': 'tasks.generate_monthly_report',
+        'schedule': crontab(day_of_month=23, hour=9, minute=32), 
+    }
+}
+celery.conf.beat_schedule = CELERYBEAT_SCHEDULE
+
+@celery.task(name='tasks.send_reminder')
+def send_reminder():
+    with app.app_context():
+        spots = ReserveParkingSpot.query.filter(ReserveParkingSpot.end_time == None).order_by(ReserveParkingSpot.start_time.asc()).all()
+        for spot in spots:
+            user = User.query.get(spot.u_id)
+            spot1=ParkingSpot.query.get(spot.spot_id)
+            lot= ParkingLot.query.get(spot1.lot_id)
+            if spot.start_time.tzinfo is None:
+                spot.start_time = IST.localize(spot.start_time)
+            cost= (((datetime.now(IST) - spot.start_time).total_seconds() // 3600 )+1)* lot.price
+            if user:
+                msg = Message('Daily Parking Spot Reminder',
+                              sender='mangaimathimk@gmail.com',
+                              recipients=[user.email])
+                msg.body = f'Hi {user.name}! Remember to check your parking spot {spot.spot_id} at address "{lot.address}". The cost is ₹{lot.price} per hour and the estimated cost is already ₹{cost}. Come and pick up your vehicle at your earliest convenience. Have a great day!'
+                mail.send(msg)
+                print(f'Reminder sent to {user.email}')
+
+@celery.task(name='tasks.generate_monthly_report')
+def generate_monthly_report():
+    with app.app_context():
+        from weasyprint import HTML
+        users= User.query.all()
+        for user in users:
+            today = datetime.now(IST)
+            this_month=datetime(today.year, today.month, 23)
+            if today.month == 1:
+                last_month = datetime(today.year - 1, 12, 23)
+            else:
+                last_month = datetime(today.year, today.month - 1, 23)
+            spots= ReserveParkingSpot.query.filter(ReserveParkingSpot.u_id==user.u_id, ReserveParkingSpot.end_time>=last_month, ReserveParkingSpot.end_time<this_month).all()
+            if spots:
+                html_content = f'''
+                <!DOCTYPE html>
+                <html>
+                <head>
+                <meta charset="utf-8">
+                <style>
+                    body {{
+                        font-family: "Segoe UI", sans-serif;
+                        margin: 40px;
+                        font-size: 14px;
+                    }}
+                    h1 {{
+                        text-align: center;
+                        color: #2c3e50;
+                    }}
+                    p {{
+                        margin: 10px 0;
+                    }}
+                    table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 20px;
+                        margin-bottom: 20px;
+                    }}
+                    th, td {{
+                        border: 1px solid #999;
+                        padding: 10px;
+                        text-align: center;
+                    }}
+                    th {{
+                        background-color: #f2f2f2;
+                    }}
+                    .summary {{
+                        margin-top: 20px;
+                        font-weight: bold;
+                    }}
+                </style>
+                </head>
+                <body>
+                <h1>Monthly Parking Report</h1>
+                <p><strong>User:</strong> {user.name}</p>
+                <p><strong>Email:</strong> {user.email}</p>
+                <table>
+                    <tr>
+                    <th>Spot ID</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Cost</th>
+                    </tr>
+                '''
+                for spot in spots:
+                    if spot.start_time.tzinfo is None:
+                        spot.start_time = IST.localize(spot.start_time)
+                    if spot.end_time.tzinfo is None:
+                        spot.end_time = IST.localize(spot.end_time)
+                    html_content += f'<tr><td>{spot.spot_id}</td><td>{spot.start_time}</td><td>{spot.end_time}</td><td>{spot.cost}</td></tr>'
+                html_content += '</table>'
+                html_content += f'<p class="summary">Total Spots Used this month: {len(spots)}</p>'
+                html_content += f'<p class="summary">Total Cost incurred this month: ₹{sum(spot.cost for spot in spots)}</p>'
+                html_content += '<p>Thank you for your patronage!Please use our services again.</p>'
+                pdf = HTML(string=html_content).write_pdf()
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+                    temp_file.write(pdf)
+                    temp_file_path = temp_file.name
+                
+                msg = Message('Monthly Parking Report',
+                              sender='noreply@parkingapp.com',
+                              recipients=[user.email])
+                msg.body = f'Hi {user.name}! Below we have attached your monthly parking report. Please find the details of your parking spots used in the last month and for any discrepancies, contact us at mangaimathimk@gmail.com. Thank you for using our services!'
+                with app.open_resource(temp_file_path) as fp:
+                    msg.attach('monthly_report.pdf', 'application/pdf', fp.read())
+                mail.send(msg)
+                print(f'Monthly report sent to {user.email}')
+
+@celery.task(name='tasks.export_csv')
+@jwt_required()
+def export_csv():
+    with app.app_context():
+        users = User.query.all()
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['User ID', 'Name', 'Email', 'Address', 'PIN'])
+        for user in users:
+            writer.writerow([user.u_id, user.name, user.email, user.addr, user.pin])
+        output.seek(0)
+        csv_path = os.path.join(static_dir, 'users.csv')
+        with open(csv_path, 'w') as f:
+            f.write(output.getvalue())
+        print(f'CSV file created at {csv_path} for admin to see')
+
+@celery.task(name='tasks.export_csv_user')
+def export_csv_user(user_id):
+    with app.app_context():
+        user = User.query.get(user_id)
+        spots= ReserveParkingSpot.query.filter_by(u_id=user.u_id).all()
+        if not user:
+            return
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Spot ID', 'Start Time', 'End Time', 'Vehicle Number', 'Cost'])
+        for spot in spots:
+            veh= Vehicle.query.filter_by(u_id=user.u_id, r_id= spot.r_id).first()
+            if spot.start_time.tzinfo is None:
+                spot.start_time = IST.localize(spot.start_time)
+            if spot.end_time.tzinfo is None:
+                spot.end_time = IST.localize(spot.end_time)
+            writer.writerow([spot.spot_id, spot.start_time, spot.end_time, veh.vehicle_no if veh else None, spot.cost])
+        output.seek(0)
+        csv_path = os.path.join(static_dir, f'user_{user.u_id}_report.csv')
+        with open(csv_path, 'w') as f:
+            f.write(output.getvalue())
+        print(f'CSV file created at {csv_path} for user {user.name} to see')
 
 def graph_1():
     data= db.session.query(
         ParkingLot.name,
         func.sum(ReserveParkingSpot.cost)
-    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).join(ReserveParkingSpot, ParkingSpot.spot_id == ReserveParkingSpot.spot_id).group_by(ParkingLot.name).all()
+    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).join(ReserveParkingSpot, ParkingSpot.spot_id == ReserveParkingSpot.spot_id).filter(~ParkingLot.name.ilike('__deleted__%')).group_by(ParkingLot.name).all()
     if not data:
-        return
+        return -1
     lot_names = [row[0] for row in data]
     lot_costs = [row[1] for row in data]
     pie= plt.figure(figsize=(10, 6))
@@ -91,6 +296,7 @@ def graph_1():
     plt.title('Revenue from each Parking Lot')
     pie_path = os.path.join(static_dir, 'lot_earnings.png')
     pie.savefig(pie_path)
+    print(lot_names)
     plt.close()
     
 def graph_2():
@@ -98,9 +304,9 @@ def graph_2():
         ParkingLot.name,
         func.sum(case((ParkingSpot.status == 'A', 1), else_=0)).label('available'),
         func.sum(case((ParkingSpot.status == 'O', 1), else_=0)).label('occupied')
-    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).group_by(ParkingLot.name).all()
+    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).filter(~ParkingLot.name.ilike('__deleted__%')).group_by(ParkingLot.name).all()
     if not data:
-        return
+        return -1
     lot_names = [row[0] for row in data]
     lot_a = [row[1] for row in data]
     lot_o = [row[2] for row in data]
@@ -114,6 +320,7 @@ def graph_2():
     plt.xticks(range(len(lot_names)), lot_names, rotation=45)
     plt.legend()
     bar_path = os.path.join(static_dir, 'lot_availability.png')
+    print(lot_names)
     bar.savefig(bar_path)
     plt.close()
 
@@ -121,9 +328,9 @@ def graph_3():
     data= db.session.query(
         ParkingLot.name,
         func.sum(case((ReserveParkingSpot.end_time.isnot(None), 1),else_=0)).label('reservation_count')
-    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).join(ReserveParkingSpot, ParkingSpot.spot_id == ReserveParkingSpot.spot_id).group_by(ParkingLot.name).all()
+    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).join(ReserveParkingSpot, ParkingSpot.spot_id == ReserveParkingSpot.spot_id).filter(~ParkingLot.name.ilike('__deleted__%')).group_by(ParkingLot.name).all()
     if not data:
-        return
+        return -1
     lot_names = [row[0] for row in data]
     lot_counts = [row[1] for row in data]
     bar = plt.figure(figsize=(10, 6))
@@ -136,6 +343,41 @@ def graph_3():
     bar.savefig(bar_path)
     plt.close()
 
+def skip_cache1():
+    try:
+        current_user = get_jwt_identity()
+        return current_user is None 
+    except RuntimeError:
+        return True 
+    
+def cache_key1():
+    try:
+        current_user = get_jwt_identity()
+        return f"admin_dashboard_{current_user}" if current_user else "admin_dashboard_none"
+    except RuntimeError:
+        return "admin_dashboard_error"
+
+def cache_key2():
+    try:
+        current_user = get_jwt_identity()
+        return f"admin_users_{current_user}" if current_user else "admin_users_none"
+    except RuntimeError:
+        return "admin_users_error"
+
+def cache_key3():
+    try:
+        current_user = get_jwt_identity()
+        return f"user_dashboard_{current_user}" if current_user else "user_dashboard_none"
+    except RuntimeError:
+        return "user_dashboard_error"
+    
+def cache_key4():
+    try:
+        current_user = get_jwt_identity()
+        return f"user_history_{current_user}" if current_user else "user_history_none"
+    except RuntimeError:
+        return "user_history_error"
+
 @app.before_request
 def create_tables():
     db.create_all()
@@ -145,7 +387,6 @@ def create_tables():
         db.session.commit() 
 
 @app.route('/register', methods=['POST'])
-@cross_origin()
 def register():
     data=request.get_json()
     n=data.get('name')
@@ -165,13 +406,13 @@ def register():
             try:
                 db.session.add(new)
                 db.session.commit()
-                return jsonify({'msg': 'Registration successful'}), 201 
+                cache.delete(f"admin_users_1")
+                return jsonify({'msg': 'Registration successful'}), 201
             except Exception as e:
                 db.session.rollback()
                 return jsonify({'msg': str(e)}), 500
 
 @app.route('/login', methods=['POST'])
-@cross_origin()
 def login():
     data = request.get_json()
     e = data.get('email')
@@ -202,21 +443,17 @@ def login():
  
 @app.route('/logout', methods=['GET','POST','OPTIONS'])
 @jwt_required()
-@cross_origin() 
 def logout():
     return jsonify({ 
             'msg': 'Logout successful'
         }), 200
 
-@app.route('/admin_dashboard', methods=['OPTIONS'])
-@cross_origin()
-def admin_dashboard_options():
-    return '', 200
-
-@app.route('/admin_dashboard', methods=['GET','POST'])
+@cache.cached(unless=skip_cache1, key_prefix=cache_key1)
+@app.route('/admin_dashboard', methods=['GET', 'OPTIONS'])
 @jwt_required()
-@cross_origin()
 def admin_dashboard():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
     current_user = get_jwt()
     if not current_user.get('admin'):
         return jsonify({'msg': 'Access denied'}), 403
@@ -236,8 +473,7 @@ def admin_dashboard():
     return jsonify(data), 200
 
 @app.route('/admin_addlot', methods=['POST','OPTIONS'])
-@jwt_required(optional=True)
-@cross_origin()
+@jwt_required()
 def admin_addlot():
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200 
@@ -262,14 +498,13 @@ def admin_addlot():
             new_spot = ParkingSpot(lot_id=new_lot.lot_id, status='A')
             db.session.add(new_spot)
             db.session.commit()
-    
+        cache.delete(f"admin_dashboard_1")
         return jsonify({'msg': 'Parking Lot added successfully'}), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'msg': str(e)}), 500    
     
 @app.route('/admin_editlot/<int:lot_id>', methods=['GET','POST'])
-@cross_origin()
 @jwt_required()
 def admin_editlot(lot_id):
     current_user = get_jwt()
@@ -310,14 +545,14 @@ def admin_editlot(lot_id):
                 for spot in available_spots:
                     db.session.delete(spot)
             db.session.commit()
+            cache.delete(f"admin_dashboard_1")
             return jsonify({'msg': 'Parking Lot updated successfully'}), 200
         except Exception as e:
             db.session.rollback()
             return jsonify({'msg': str(e)}), 500
 
 @app.route('/admin_dashboard/<int:lot_id>', methods=['DELETE','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def admin_deletelot(lot_id):
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
@@ -337,14 +572,14 @@ def admin_deletelot(lot_id):
             spot.status = 'X'
         lot.name =  f"__deleted__{lot.name}"
         db.session.commit()
+        cache.delete(f"admin_dashboard_1")
         return jsonify({'msg': 'Parking Lot deleted successfully'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'msg': str(e)}), 500
 
 @app.route('/admin_viewspot/<int:spot_id>', methods=['GET','OPTIONS','DELETE'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def admin_viewspot(spot_id):
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
@@ -379,9 +614,72 @@ def admin_viewspot(spot_id):
             'status': spot.status
         }), 200
 
+@app.route('/admin_search', methods=['GET','OPTIONS'])
+@jwt_required()
+def admin_search():
+    if request.method == 'OPTIONS':
+        return jsonify({'msg': 'CORS preflight'}), 200
+    current_user = get_jwt()
+    if not current_user.get('admin'):
+        return jsonify({'msg': 'Access denied'}), 403
+    
+    search_by = request.args.get('searchBy',default='location').strip()
+    query = request.args.get('query', '').strip()
+    results=[]
+    if search_by == 'location':
+        if not query:
+            return jsonify([]), 200
+        p_lots= ParkingLot.query.filter(
+            ((ParkingLot.name.ilike(f'%{query}%')) & (~ParkingLot.name.ilike('__deleted__%')))).all()
+        
+        for lot in p_lots: 
+            spots= ParkingSpot.query.filter_by(lot_id=lot.lot_id).all()
+            reserved_spots = ReserveParkingSpot.query.join(ParkingSpot).filter(ParkingSpot.lot_id == lot.lot_id, ReserveParkingSpot.end_time == None).count()
+            results.append({
+                'lot_id': lot.lot_id,
+                'name': lot.name,
+                'num': lot.num,
+                'occupied': reserved_spots,
+                'spots': [{'spot_id': spot.spot_id, 'status': spot.status} for spot in spots]
+            }) 
+    elif search_by == 'user':
+        try:
+            userId= int(query)
+            user = User.query.get(userId)
+            if not user:
+                return jsonify({'msg': 'User not found'}), 404
+            results.append({
+                'u_id': user.u_id,
+                'email': user.email,
+                'name': user.name,
+                'addr': user.addr,
+                'pin': user.pin
+            }) 
+        except ValueError:
+            return jsonify([]), 200
+    elif search_by == 'spot':
+        try:
+            spotId = int(query)
+            spot = ParkingSpot.query.get(spotId)
+            if not spot:
+                return jsonify({'msg': 'Parking Spot not found'}), 404
+            lot = ParkingLot.query.get(spot.lot_id)
+            reserved_spots = ReserveParkingSpot.query.filter_by(spot_id=spotId, end_time=None).count()
+            results.append({
+                'spot_id': spot.spot_id,
+                'lot_id': lot.lot_id,
+                'lot_name': lot.name,
+                'status': spot.status,
+                'r_count': reserved_spots
+            }) 
+        except ValueError:
+            return jsonify([]), 200
+    else:
+        return jsonify([]), 200
+    return jsonify(results), 200
+
 @app.route('/admin_summary', methods=['GET','OPTIONS'] )
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def admin_summary():
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
@@ -389,17 +687,16 @@ def admin_summary():
     if not current_user.get('admin'):
         return jsonify({'msg': 'Access denied'}), 403
     
-    graph_1()
-    graph_2()
+    c1=graph_1()
+    c2=graph_2()   
     return jsonify({
         'msg': 'Summary graphs generated successfully',
-        'revenue_graph': '/static/lot_earnings.png',
-        'availability_graph': '/static/lot_availability.png'
+        'revenue_graph': '/static/lot_earnings.png' if c1 != -1 else None,
+        'availability_graph': '/static/lot_availability.png' if c2 != -1 else None
     }), 200
 
 @app.route('/user_summary', methods=['GET','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def user_summary():
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
@@ -411,15 +708,16 @@ def user_summary():
         if not user:
             return jsonify({'msg': 'User not found'}), 404
         
-        graph_3()
+        c3=graph_3()
+        if c3 == -1:
+            return jsonify({'msg': 'No data available for summary graphs'}), 404
         return jsonify({
             'msg': 'Summary graphs generated successfully',
             'reservation_graph': '/static/lot_reservations.png'
         }), 200
 
 @app.route('/admin_reservespot/<int:spot_id>', methods=['GET','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def admin_reservespot(spot_id):
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
@@ -433,12 +731,16 @@ def admin_reservespot(spot_id):
     if not spot:
         return jsonify({'msg': 'Reserved Parking Spot not found'}), 404
     user = User.query.get(spot.u_id)
-    vehicle=Vehicle.query.filter_by(u_id=user.u_id,spot_id=spot.spot_id).first()
+    vehicle=Vehicle.query.filter_by(u_id=user.u_id,r_id=spot.r_id).first()
+    if spot.start_time.tzinfo is None:
+            spot.start_time = IST.localize(spot.start_time)
     if spot.end_time:
+        if spot.end_time.tzinfo is None:
+            spot.end_time = IST.localize(spot.end_time)
         hours = ((spot.end_time - spot.start_time).total_seconds() // 3600) + 1
         cost = int(hours * price)
     else:
-        hours = ((datetime.utcnow() - spot.start_time).total_seconds() // 3600) + 1
+        hours = ((datetime.now(IST) - spot.start_time).total_seconds() // 3600) + 1
         cost = int(hours * price)
     return jsonify({
         'spot_id': spot.spot_id,
@@ -449,9 +751,9 @@ def admin_reservespot(spot_id):
         'cost': cost
     }), 200
 
+@cache.cached(timeout=60,unless=skip_cache1, key_prefix=cache_key2)
 @app.route('/admin_users', methods=['GET','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def admin_users():
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
@@ -471,16 +773,16 @@ def admin_users():
         })
     return jsonify(data), 200
 
+@cache.cached(unless=skip_cache1, key_prefix=cache_key3)
 @app.route('/user_dashboard', methods=['GET','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def user_dashboard():
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
     current_user = get_jwt()
     if not current_user.get('admin'):
-        user_id = int(current_user['sub'])
-        user = User.query.get(user_id)
+        user_id = current_user.get("sub")
+        user = User.query.get(int(user_id))
         if not user:
             return jsonify({'msg': 'User not found'}), 404
 
@@ -489,39 +791,34 @@ def user_dashboard():
         for spot in spots:
             s=ParkingSpot.query.get(spot.spot_id)
             loc= ParkingLot.query.get(s.lot_id).name
-            veh= Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).all()
-            veh1= Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).count()
-            if (spot.end_time is None) or (spot.start_time < datetime.utcnow()- timedelta(days=5)):
-                if veh1 > 1:
-                    for i in range(veh1):
-                        data.append({
-                            'r_id': spot.r_id,
-                            'loc' : loc,
-                            'veh_no': veh[i].vehicle_no,
-                            'stamp': spot.start_time.isoformat()
-                        })
-                else:
-                    data.append({
-                        'r_id': spot.r_id,
-                        'loc' : loc,
-                        'veh_no': veh[0].vehicle_no if veh else None,
-                        'stamp': spot.start_time.isoformat()
-                    })
+            sp=ReserveParkingSpot.query.filter_by(r_id=spot.r_id).first()
+            veh_no=sp.vehicle_no
+            if sp.start_time.tzinfo is None:
+                sp.start_time = IST.localize(sp.start_time)
+            if (spot.end_time is None) or (spot.start_time >= datetime.now(IST) - timedelta(days=30)):
+                 data.append({
+                    'r_id': spot.r_id,
+                    'loc' : loc,
+                    'veh_no': veh_no if veh_no else None,
+                    'stamp': spot.start_time.isoformat(),
+                    'end_time': spot.end_time.isoformat() if spot.end_time else None
+                })
         return jsonify(data), 200
 
 @app.route('/user_search', methods=['GET','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def user_search():
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
     current_user = get_jwt()
     if not current_user.get('admin'):
-        user_id = int(current_user['sub'])
-        user = User.query.get(user_id)
+        user_id = current_user.get("sub")
+        user = User.query.get(int(user_id))
         if not user:
             return jsonify({'msg': 'User not found'}), 404
         query = request.args.get('query', '').strip()
+        if not query:
+            return jsonify([]), 200
         p_lots = ParkingLot.query.filter(
             ((ParkingLot.name.ilike(f'%{query}%')) & (~ParkingLot.name.ilike('__deleted__%'))) |
             (ParkingLot.pinc.ilike(f'%{query}%'))
@@ -539,15 +836,14 @@ def user_search():
         return jsonify(data), 200
 
 @app.route('/user_book/<int:lot_id>', methods=['GET','POST','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def user_book(lot_id):
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
     current_user = get_jwt()
     if not current_user.get('admin'):
-        user_id = int(current_user['sub'])
-        user = User.query.get(user_id)
+        user_id = current_user.get("sub")
+        user = User.query.get(int(user_id))
         if not user:
             return jsonify({'msg': 'User not found'}), 404
         
@@ -571,37 +867,41 @@ def user_book(lot_id):
             user_id = data.get('u_id', user.u_id)
             vehicle_no = data.get('vehicle_no')
             if vehicle_no:
-                if not vehicle_no.strip():
-                    return jsonify({'msg': 'Vehicle number is required'}), 400
-                
-                a_veh=db.session.query(Vehicle).join(ReserveParkingSpot).filter(Vehicle.u_id == user.u_id,Vehicle.vehicle_no == vehicle_no,Vehicle.spot_id == ReserveParkingSpot.spot_id,ReserveParkingSpot.end_time == None).first()
+                a_veh=db.session.query(Vehicle).join(ReserveParkingSpot, Vehicle.r_id == ReserveParkingSpot.r_id).filter(Vehicle.u_id == user.u_id,Vehicle.vehicle_no == vehicle_no, ReserveParkingSpot.end_time == None).first()
                 if a_veh:
                     return jsonify({'msg': 'Vehicle already booked a spot and in use'}), 409
-                if not Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot_id).first():
-                        new_vehicle = Vehicle(u_id=user.u_id, spot_id=spot_id, vehicle_no=vehicle_no)
-                        db.session.add(new_vehicle)
-                        db.session.commit()
-                new=ReserveParkingSpot(
-                    spot_id=spot_id,
-                    u_id=user.u_id,
-                    start_time=datetime.utcnow(),
-                    end_time=None,
-                    cost=0
-                )
+                
+                if not Vehicle.query.filter_by(u_id=user.u_id, vehicle_no=vehicle_no).first():
+                    new=ReserveParkingSpot(
+                        spot_id=spot_id,
+                        u_id=user.u_id,
+                        start_time =datetime.now(IST),
+                        end_time=None,
+                        cost=0,
+                        vehicle_no=vehicle_no
+                    )
                 try:
                     db.session.add(new)
                     db.session.commit()
+                    r_id=new.r_id
+                    new_vehicle = Vehicle(u_id=user.u_id, r_id=r_id, vehicle_no=vehicle_no)
+                    db.session.add(new_vehicle)
+                    db.session.commit()
+
                     spot = ParkingSpot.query.get(spot_id)
                     spot.status = 'O'
                     db.session.commit()
+                    cache.delete(f"user_dashboard_{user_id}")
+                    cache.delete(f"admin_dashboard_1")
                     return jsonify({'msg': 'Booking successful'}), 201
                 except Exception as e:
                     db.session.rollback()
                     return jsonify({'msg': str(e)}), 500
+            else:
+                return jsonify({'msg': 'Vehicle number is required'}), 400
 
 @app.route('/user_release/<int:r_id>', methods=['GET','POST','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)    
+@jwt_required()    
 def user_release(r_id):
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
@@ -616,12 +916,14 @@ def user_release(r_id):
         if not spot or spot.u_id != user.u_id:
             return jsonify({'msg': 'Reservation not found or access denied'}), 404
 
-        end_time = datetime.utcnow()
+        end_time = datetime.now(IST)
+        if spot.start_time.tzinfo is None:
+            spot.start_time = IST.localize(spot.start_time)
         hours = ((end_time - spot.start_time).total_seconds() // 3600) + 1
         s = ParkingSpot.query.get(spot.spot_id)
         lot= ParkingLot.query.get(s.lot_id)
         cost = int(hours * lot.price)
-        veh_no= Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).first()
+        veh_no= Vehicle.query.filter_by(u_id=user.u_id, r_id=spot.r_id).first()
         if request.method == 'GET':
             data=[{
                 'spot_id': spot.spot_id,
@@ -636,63 +938,52 @@ def user_release(r_id):
                 spot.end_time = end_time
                 spot.cost = cost
                 s.status = 'A'
+                veh_no.r_id = None
                 db.session.commit()
-
+                cache.delete(f"user_dashboard_{user_id}")
+                cache.delete(f"user_history_{user_id}")
+                cache.delete(f"admin_dashboard_1")
             return jsonify({'msg': 'Spot released successfully', 'cost': cost}), 200
 
+@cache.cached(unless=skip_cache1,key_prefix=cache_key4)
 @app.route('/user_history', methods=['GET','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def user_history():
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
     current_user = get_jwt()
     if not current_user.get('admin'):
-        user_id = int(current_user['sub'])
-        user = User.query.get(user_id)
+        user_id = current_user.get("sub")
+        user = User.query.get(int(user_id))
         if not user:
             return jsonify({'msg': 'User not found'}), 404
 
-        spots = ReserveParkingSpot.query.filter_by(u_id=user.u_id).order_by(ReserveParkingSpot.end_time.desc()).all()
+        spots = ReserveParkingSpot.query.filter(ReserveParkingSpot.u_id == user.u_id, ReserveParkingSpot.end_time != None).order_by(ReserveParkingSpot.end_time.desc()).all()
         data = []
         for spot in spots:
-            if spot.end_time is not None:
-                s = ParkingSpot.query.get(spot.spot_id)
-                loc = ParkingLot.query.get(s.lot_id).name
-                veh = Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).all()
-                veh1 = Vehicle.query.filter_by(u_id=user.u_id, spot_id=spot.spot_id).count()
-            
-                if veh1 > 1:
-                    for i in range(veh1):
-                        data.append({
-                            'r_id': spot.r_id,
-                            'loc': loc,
-                            'veh_no': veh[i].vehicle_no,
-                            'start_time': spot.start_time.isoformat(),
-                            'end_time': spot.end_time.isoformat(),
-                            'cost': spot.cost
-                        })
-                else:
-                    data.append({
-                        'r_id': spot.r_id,
-                        'loc': loc,
-                        'veh_no': veh[0].vehicle_no if veh else None,
-                        'start_time': spot.start_time.isoformat(),
-                        'end_time': spot.end_time.isoformat() if spot.end_time else None,
-                        'cost': spot.cost
-                    })
+            s = ParkingSpot.query.get(spot.spot_id)
+            loc = ParkingLot.query.get(s.lot_id).name
+            sp= ReserveParkingSpot.query.filter_by(r_id=spot.r_id).first()
+            veh_no=sp.vehicle_no
+            data.append({
+                    'r_id': spot.r_id,
+                    'loc': loc,
+                    'veh_no': veh_no if veh_no else None,
+                    'start_time': spot.start_time.isoformat(),
+                    'end_time': spot.end_time.isoformat() if spot.end_time else None,
+                    'cost': spot.cost
+            })
         return jsonify(data), 200
 
 @app.route('/user_profile', methods=['GET','POST','OPTIONS'])
-@cross_origin()
-@jwt_required(optional=True)
+@jwt_required()
 def user_profile():
     if request.method == 'OPTIONS':
         return jsonify({'msg': 'CORS preflight'}), 200
     current_user = get_jwt()
     if not current_user.get('admin'):
-        user_id = int(current_user['sub'])
-        user = User.query.get(user_id)
+        user_id = current_user.get("sub")
+        user = User.query.get(int(user_id))
         if not user:
             return jsonify({'msg': 'User not found'}), 404
 
@@ -717,6 +1008,8 @@ def user_profile():
             user.pin = data.get('pin', user.pin)
             try:
                 db.session.commit()
+                cache.delete(f"user_dashboard_{user_id}")
+                cache.delete("admin_users_1")
                 return jsonify({'msg': 'Profile updated successfully'}), 200
             except Exception as e:
                 db.session.rollback()
