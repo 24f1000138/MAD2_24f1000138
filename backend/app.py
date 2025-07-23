@@ -1,5 +1,5 @@
 import celery
-from flask import Flask,request, jsonify, send_file
+from flask import Flask,request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import (
@@ -224,7 +224,7 @@ def generate_monthly_report():
                         spot.start_time = IST.localize(spot.start_time)
                     if spot.end_time.tzinfo is None:
                         spot.end_time = IST.localize(spot.end_time)
-                    html_content += f'<tr><td>{spot.spot_id}</td><td>{spot.start_time}</td><td>{spot.end_time}</td><td>{spot.cost}</td></tr>'
+                    html_content += f"<tr><td>{spot.spot_id}</td><td>{spot.start_time.strftime('%Y-%m-%d %H:%M:%S')}</td><td>{spot.end_time.strftime('%Y-%m-%d %H:%M:%S')}</td><td>{spot.cost}</td></tr>"
                 html_content += '</table>'
                 html_content += f'<p class="summary">Total Spots Used this month: {len(spots)}</p>'
                 html_content += f'<p class="summary">Total Cost incurred this month: ₹{sum(spot.cost for spot in spots)}</p>'
@@ -244,7 +244,6 @@ def generate_monthly_report():
                 print(f'Monthly report sent to {user.email}')
 
 @celery.task(name='tasks.export_csv')
-@jwt_required()
 def export_csv():
     with app.app_context():
         users = User.query.all()
@@ -268,19 +267,65 @@ def export_csv_user(user_id):
             return
         output = StringIO()
         writer = csv.writer(output)
-        writer.writerow(['Spot ID', 'Start Time', 'End Time', 'Vehicle Number', 'Cost'])
+        writer.writerow(['Reservation ID', 'Spot ID', 'Start Time', 'End Time', 'Vehicle Number', 'Cost', 'Remarks'])
         for spot in spots:
             veh= Vehicle.query.filter_by(u_id=user.u_id, r_id= spot.r_id).first()
             if spot.start_time.tzinfo is None:
                 spot.start_time = IST.localize(spot.start_time)
-            if spot.end_time.tzinfo is None:
-                spot.end_time = IST.localize(spot.end_time)
-            writer.writerow([spot.spot_id, spot.start_time, spot.end_time, veh.vehicle_no if veh else None, spot.cost])
+            if spot.end_time:
+                if spot.end_time.tzinfo is None:
+                    spot.end_time = IST.localize(spot.end_time)
+
+            if spot.cost==None:
+                remarks="Yet to be released"
+            else:
+                remarks="Released/Parked Out"
+            writer.writerow([spot.r_id, spot.spot_id, spot.start_time.strftime('%Y-%m-%d %H:%M:%S'), spot.end_time.strftime('%Y-%m-%d %H:%M:%S') if spot.end_time else None, veh.vehicle_no if veh else None, spot.cost, remarks])
         output.seek(0)
         csv_path = os.path.join(static_dir, f'user_{user.u_id}_report.csv')
-        with open(csv_path, 'w') as f:
+        with open(csv_path, 'w',encoding='utf-8') as f:
             f.write(output.getvalue())
+        msg = Message('Your CSV report is ready!',
+              sender='mangaimathimk@gmail.com',
+              recipients=[user.email])
+        msg.body = f'Hi {user.name},\n\nYour parking history CSV has been generated.'
+        mail.send(msg)
         print(f'CSV file created at {csv_path} for user {user.name} to see')
+
+@app.route('/trigger_csv', methods=['GET','POST'])
+@jwt_required()
+def trigger_admin_csv():
+    export_csv.delay()
+    return jsonify({"message": "CSV generation started. You'll be notified once it's ready. After generation, you can view it on static folder"}), 202
+
+@app.route('/trigger_csv/<int:user_id>', methods=['POST'])
+@jwt_required()
+def trigger_csv(user_id):
+    export_csv_user.delay(user_id)
+    return jsonify({"message": "CSV generation started. You'll be notified once it's ready. After generation, it will be downloaded automatically."}), 202
+
+@app.route('/download_csv/<int:user_id>', methods=['GET'])
+def download_csv(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    filename = f'user_{user.u_id}_report.csv'
+    file_path = os.path.join(static_dir, filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'CSV file not found. Please export first.'}), 404
+    return send_from_directory(directory=static_dir, path=filename, as_attachment=True)
+
+@app.route('/check_csv/<int:user_id>', methods=['GET'])
+@jwt_required()
+def check_csv(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"ready": False}), 404
+    filename = f'user_{user.u_id}_report.csv'
+    file_path = os.path.join(static_dir, filename)
+    if os.path.exists(file_path):
+        return jsonify({"ready": True})
+    return jsonify({"ready": False})
 
 def graph_1():
     data= db.session.query(
@@ -747,7 +792,7 @@ def admin_reservespot(spot_id):
         'u_id': spot.u_id,
         'user_name': user.name if user else None,
         'vehicle_no': vehicle.vehicle_no if vehicle else None,
-        'start_time': spot.start_time.isoformat(),
+        'start_time': spot.start_time.strftime('%Y-%m-%d %H:%M:%S'),
         'cost': cost
     }), 200
 
@@ -800,8 +845,8 @@ def user_dashboard():
                     'r_id': spot.r_id,
                     'loc' : loc,
                     'veh_no': veh_no if veh_no else None,
-                    'stamp': spot.start_time.isoformat(),
-                    'end_time': spot.end_time.isoformat() if spot.end_time else None
+                    'stamp': spot.start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'end_time': spot.end_time.strftime('%Y-%m-%d %H:%M:%S') if spot.end_time else None
                 })
         return jsonify(data), 200
 
@@ -928,8 +973,8 @@ def user_release(r_id):
             data=[{
                 'spot_id': spot.spot_id,
                 'veh_no': veh_no.vehicle_no if veh_no else None,
-                'start_time': spot.start_time.isoformat(),
-                'end_time': end_time.isoformat(),
+                'start_time': spot.start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'end_time': end_time.strftime('%Y-%m-%d %H:%M:%S'),
                 'cost': cost
             }]
             return jsonify(data), 200
@@ -966,11 +1011,12 @@ def user_history():
             sp= ReserveParkingSpot.query.filter_by(r_id=spot.r_id).first()
             veh_no=sp.vehicle_no
             data.append({
+                    'u_id': user_id,
                     'r_id': spot.r_id,
                     'loc': loc,
                     'veh_no': veh_no if veh_no else None,
-                    'start_time': spot.start_time.isoformat(),
-                    'end_time': spot.end_time.isoformat() if spot.end_time else None,
+                    'start_time': spot.start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'end_time': spot.end_time.strftime('%Y-%m-%d %H:%M:%S') if spot.end_time else None,
                     'cost': spot.cost
             })
         return jsonify(data), 200
