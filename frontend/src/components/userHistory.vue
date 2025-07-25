@@ -21,6 +21,7 @@
           <th>Start Time</th>
           <th>End Time</th>
           <th>Cost</th>
+          <th>Payment Status</th>
         </tr>
       </thead>
       <tbody>
@@ -31,10 +32,22 @@
           <td>{{ spot.start_time }}</td>
           <td>{{ spot.end_time }}</td>
           <td>{{ spot.cost }}</td>
+          <td>
+            <span v-if="spot.payment === 'Paid'" style="color: green;">Paid</span>
+            <span v-else style="color: red;" @click="showQRCode(spot.r_id)">Pay Now</span>
+          </td>
         </tr>
       </tbody>
     </table>
     <button @click="triggerCSV">Trigger and Download (CSV)</button>
+    </div>
+
+    <div v-if="showQRCodeModal" class="qr-code-modal">
+      <div class="qr-code-content">
+        <h3>Scan QR Code to Pay</h3>
+        <img :src="qrCodeUrl" alt="QR Code" />
+        <button @click="closeQRCode">Close</button>
+      </div>
     </div>
 </template> 
 
@@ -45,7 +58,9 @@ export default {
   name: 'UserHistory',
   data() {
     return {
-      rspots: []
+      rspots: [],
+      showQRCodeModal: false,
+      qrCodeUrl: ''
     }
   },
   methods: {   
@@ -102,7 +117,16 @@ export default {
   } catch (err) {
     console.error('Error:', err);
   }
-    }
+    },
+    showQRCode(r_id) {
+    this.qrCodeUrl = `http://localhost:5000/generate_qr/${r_id}`
+    this.showQRCodeModal = true
+  },
+
+  closeQRCode() {
+    this.showQRCodeModal = false
+    this.qrCodeUrl = ''
+  }
   },
   mounted() {
     this.fetchHistory()
@@ -187,5 +211,30 @@ thead {
 
 tbody tr:nth-child(even) {
   background-color: #f9f9f9;
+}
+.qr-code-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-code-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
+}
+
+.qr-code-content img {
+  width: 200px;
+  height: 200px;
+  margin: 20px 0;
 }
 </style>
