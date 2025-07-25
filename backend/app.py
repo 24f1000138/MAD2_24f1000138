@@ -1,5 +1,5 @@
 import celery
-from flask import Flask,request, jsonify, send_from_directory
+from flask import Flask,request, jsonify, send_from_directory, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import (
@@ -21,6 +21,7 @@ import tempfile
 import csv
 from io import StringIO
 import pytz
+import qrcode
 
 IST = pytz.timezone('Asia/Kolkata')
 os.add_dll_directory(r"C:\GTK3\bin")
@@ -116,6 +117,7 @@ class ReserveParkingSpot(db.Model):
     end_time = db.Column(db.DateTime, nullable=True)
     cost= db.Column(db.Integer, nullable=True)
     vehicle_no= db.Column(db.String(10), db.ForeignKey('vehicle.vehicle_no'), nullable=False)
+    payment_status = db.Column(db.String(10), nullable=False, default='Pending')
 
 class Vehicle(db.Model):
     __tablename__ = 'vehicle'
@@ -923,7 +925,8 @@ def user_book(lot_id):
                         start_time =datetime.now(IST),
                         end_time=None,
                         cost=0,
-                        vehicle_no=vehicle_no
+                        vehicle_no=vehicle_no,
+                        payment_status='Pending'
                     )
                 try:
                     db.session.add(new)
@@ -1017,7 +1020,8 @@ def user_history():
                     'veh_no': veh_no if veh_no else None,
                     'start_time': spot.start_time.strftime('%Y-%m-%d %H:%M:%S'),
                     'end_time': spot.end_time.strftime('%Y-%m-%d %H:%M:%S') if spot.end_time else None,
-                    'cost': spot.cost
+                    'cost': spot.cost,
+                    'payment': spot.payment_status
             })
         return jsonify(data), 200
 
@@ -1061,5 +1065,36 @@ def user_profile():
                 db.session.rollback()
                 return jsonify({'msg': str(e)}), 500
 
+@app.route('/generate_qr/<int:r_id>', methods=['GET'])
+def generate_qr(r_id):
+    spot = ReserveParkingSpot.query.get(r_id)
+    if not spot:
+        return "Invalid reservation", 404
+    amount = spot.cost or 10
+    NGROK_URL = " https://bf4fb81ab7cf.ngrok-free.app"
+    upi_link = f"{NGROK_URL}/mark_paid/{r_id}/{amount}"
+    qr_img = qrcode.make(upi_link)
+    qr_path = os.path.join(static_dir, f"qr_{r_id}.png")
+    qr_img.save(qr_path)
+    return send_file(qr_path, mimetype='image/png')
+
+@app.route('/mark_paid/<int:r_id>/<int:amount>', methods=['GET'])
+def mark_paid(r_id, amount):
+    spot = ReserveParkingSpot.query.get(r_id)
+    if not spot:
+        return '<h2>Invalid Reservation ID</h2>', 404
+    spot.payment_status = "Paid"
+    db.session.commit()
+    return f'''
+        <html>
+          <head><title>Payment Complete</title></head>
+          <body style="font-family: Arial; text-align: center; margin-top: 100px;">
+            <h2 style="color: green;"> Payment Completed</h2>
+            <p> ₹ {amount} received on ParkPay </p>
+            <p>Thank you for your patronage.You may now return to the app.</p>
+          </body>
+        </html>
+    '''
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
