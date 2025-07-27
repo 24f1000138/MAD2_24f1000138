@@ -1,0 +1,3 @@
+build:
+  environment: python
+  pythonVersion: 3.11.9
