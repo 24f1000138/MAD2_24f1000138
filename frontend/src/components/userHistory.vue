@@ -84,7 +84,7 @@ export default {
     async triggerCSV() {
       const userId = this.rspots[0].u_id
   try {
-    const res = await fetch(`http://localhost:5000/trigger_csv/${userId}`, {
+    const res = await fetch(`https://mad2-24f1000138.onrender.com/trigger_csv/${userId}`, {
       method: 'POST',
       headers: {
         Authorization: 'Bearer ' + localStorage.getItem('token'),
@@ -100,7 +100,7 @@ export default {
 
     while (attempts < maxAttempts && !fileReady) {
       await delay(3000); 
-      const check = await fetch(`http://localhost:5000/check_csv/${userId}`, {
+      const check = await fetch(`https://mad2-24f1000138.onrender.com/check_csv/${userId}`, {
         headers: {
           Authorization: 'Bearer ' + localStorage.getItem('token'),
         },
@@ -113,7 +113,7 @@ export default {
       attempts++;
     }
     if (fileReady) {
-      window.open(`http://localhost:5000/download_csv/${userId}`, '_blank');
+      window.open(`https://mad2-24f1000138.onrender.com/download_csv/${userId}`, '_blank');
     } else {
       alert("CSV not ready. Please try again later.");
     }
@@ -122,7 +122,7 @@ export default {
   }
     },
     showQRCode(r_id) {
-    this.qrCodeUrl = `http://localhost:5000/generate_qr/${r_id}`
+    this.qrCodeUrl = `https://mad2-24f1000138.onrender.com/generate_qr/${r_id}`
     this.showQRCodeModal = true
   },
 

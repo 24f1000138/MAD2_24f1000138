@@ -41,7 +41,7 @@ export default {
           withCredentials: true
         })
         .then(response => {
-          this.reservationGraph = 'http://localhost:5000'+ response.data.reservation_graph + '?t=' + new Date().getTime();
+          this.reservationGraph = 'https://mad2-24f1000138.onrender.com'+ response.data.reservation_graph + '?t=' + new Date().getTime();
           this.name = response.data.name;
         })
         .catch(error => {

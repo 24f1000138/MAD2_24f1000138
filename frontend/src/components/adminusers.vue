@@ -61,7 +61,7 @@ export default {
     async triggerCSV() {
       const token = localStorage.getItem('token')
   try {
-    const response = await fetch('http://localhost:5000/trigger_csv', {
+    const response = await fetch('https://mad2-24f1000138.onrender.com/trigger_csv', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

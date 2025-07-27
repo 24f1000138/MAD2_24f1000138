@@ -40,8 +40,8 @@ export default {
         withCredentials: true
       })
         .then(response => {
-          this.revenueGraph = 'http://localhost:5000'+ response.data.revenue_graph + '?t=' + new Date().getTime();
-          this.availabilityGraph = 'http://localhost:5000'+ response.data.availability_graph + '?t=' + new Date().getTime();
+          this.revenueGraph = 'https://mad2-24f1000138.onrender.com'+ response.data.revenue_graph + '?t=' + new Date().getTime();
+          this.availabilityGraph = 'https://mad2-24f1000138.onrender.com'+ response.data.availability_graph + '?t=' + new Date().getTime();
         })
         .catch(error => {
           console.error('Error fetching summary graphs:', error);
