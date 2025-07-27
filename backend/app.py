@@ -36,8 +36,7 @@ db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
 app.config['CACHE_TYPE'] = 'RedisCache'
-app.config['CACHE_REDIS_HOST'] = 'localhost'
-app.config['CACHE_REDIS_PORT'] = 6379
+app.config['CACHE_REDIS_URL'] = 'rediss://default:AVpnAAIjcDFjNzJkMWQxZmQwMWY0YWE1YjAxOWIzMTMxN2MyMGVjOHAxMA@boss-bat-23143.upstash.io:6379'
 app.config['CACHE_REDIS_DB'] = 0
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 cache= Cache(app)
@@ -51,8 +50,8 @@ app.config['MAIL_PASSWORD'] = 'wbzf kzpy qrkc xvkz'
 def make_celery(app):
     celery = Celery(
         app.import_name,
-        backend='redis://localhost:6379/1',
-        broker='redis://localhost:6379/0'
+        backend='rediss://default:AVpnAAIjcDFjNzJkMWQxZmQwMWY0YWE1YjAxOWIzMTMxN2MyMGVjOHAxMA@boss-bat-23143.upstash.io:6379/1',
+        broker='rediss://default:AVpnAAIjcDFjNzJkMWQxZmQwMWY0YWE1YjAxOWIzMTMxN2MyMGVjOHAxMA@boss-bat-23143.upstash.io:6379/0'
     )
     celery.conf.update(app.config)
     TaskBase = celery.Task
