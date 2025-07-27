@@ -741,8 +741,8 @@ def admin_summary():
     c2=graph_2()   
     return jsonify({
         'msg': 'Summary graphs generated successfully',
-        'revenue_graph': 'https://mad2-24f1000138.onrender.com/static/lot_earnings.png' if c1 != -1 else None,
-        'availability_graph': 'https://mad2-24f1000138.onrender.com/static/lot_availability.png' if c2 != -1 else None
+        'revenue_graph': '/static/lot_earnings.png' if c1 != -1 else None,
+        'availability_graph': '/static/lot_availability.png' if c2 != -1 else None
     }), 200
 
 @app.route('/user_summary', methods=['GET','OPTIONS'])
@@ -763,7 +763,7 @@ def user_summary():
             return jsonify({'msg': 'No data available for summary graphs'}), 404
         return jsonify({
         'msg': 'Summary graphs generated successfully',
-        'reservation_graph': 'https://mad2-24f1000138.onrender.com/static/lot_reservations.png',
+        'reservation_graph': '/static/lot_reservations.png',
         'name': user.name
 }), 200
 
