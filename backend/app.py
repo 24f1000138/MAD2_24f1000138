@@ -759,9 +759,10 @@ def user_summary():
         if c3 == -1:
             return jsonify({'msg': 'No data available for summary graphs'}), 404
         return jsonify({
-            'msg': 'Summary graphs generated successfully',
-            'reservation_graph': '/static/lot_reservations.png'
-        }), 200
+        'msg': 'Summary graphs generated successfully',
+        'reservation_graph': '/static/lot_reservations.png',
+        'name': user.name
+}), 200
 
 @app.route('/admin_reservespot/<int:spot_id>', methods=['GET','OPTIONS'])
 @jwt_required()
@@ -844,6 +845,7 @@ def user_dashboard():
                 sp.start_time = IST.localize(sp.start_time)
             if (spot.end_time is None) or (spot.start_time >= datetime.now(IST) - timedelta(days=30)):
                  data.append({
+                    'name': user.name,
                     'r_id': spot.r_id,
                     'loc' : loc,
                     'veh_no': veh_no if veh_no else None,
@@ -918,8 +920,7 @@ def user_book(lot_id):
                 if a_veh:
                     return jsonify({'msg': 'Vehicle already booked a spot and in use'}), 409
                 
-                if not Vehicle.query.filter_by(u_id=user.u_id, vehicle_no=vehicle_no).first():
-                    new=ReserveParkingSpot(
+                new=ReserveParkingSpot(
                         spot_id=spot_id,
                         u_id=user.u_id,
                         start_time =datetime.now(IST),
@@ -928,23 +929,28 @@ def user_book(lot_id):
                         vehicle_no=vehicle_no,
                         payment_status='Pending'
                     )
-                try:
-                    db.session.add(new)
+                db.session.add(new)
+                db.session.commit()
+                if not Vehicle.query.filter_by(u_id=user.u_id, vehicle_no=vehicle_no).first():       
+                    try: 
+                        r_id=new.r_id
+                        new_vehicle = Vehicle(u_id=user.u_id, r_id=r_id, vehicle_no=vehicle_no)
+                        db.session.add(new_vehicle)
+                        db.session.commit()
+                    except Exception as e:
+                        db.session.rollback()
+                        return jsonify({'msg': str(e)}), 500
+                else:
+                    veh=Vehicle.query.filter_by(u_id=user.u_id, vehicle_no=vehicle_no).first()
+                    veh.r_id = new.r_id
                     db.session.commit()
-                    r_id=new.r_id
-                    new_vehicle = Vehicle(u_id=user.u_id, r_id=r_id, vehicle_no=vehicle_no)
-                    db.session.add(new_vehicle)
-                    db.session.commit()
-
-                    spot = ParkingSpot.query.get(spot_id)
-                    spot.status = 'O'
-                    db.session.commit()
-                    cache.delete(f"user_dashboard_{user_id}")
-                    cache.delete(f"admin_dashboard_1")
-                    return jsonify({'msg': 'Booking successful'}), 201
-                except Exception as e:
-                    db.session.rollback()
-                    return jsonify({'msg': str(e)}), 500
+                spot = ParkingSpot.query.get(spot_id)
+                spot.status = 'O'
+                db.session.commit()
+                cache.delete(f"user_dashboard_{user_id}")
+                cache.delete(f"admin_dashboard_1")
+                return jsonify({'msg': 'Booking successful'}), 201
+                    
             else:
                 return jsonify({'msg': 'Vehicle number is required'}), 400
 
@@ -972,6 +978,7 @@ def user_release(r_id):
         lot= ParkingLot.query.get(s.lot_id)
         cost = int(hours * lot.price)
         veh_no= Vehicle.query.filter_by(u_id=user.u_id, r_id=spot.r_id).first()
+        print(veh_no)
         if request.method == 'GET':
             data=[{
                 'spot_id': spot.spot_id,
@@ -1014,6 +1021,7 @@ def user_history():
             sp= ReserveParkingSpot.query.filter_by(r_id=spot.r_id).first()
             veh_no=sp.vehicle_no
             data.append({
+                    'name': user.name,
                     'u_id': user_id,
                     'r_id': spot.r_id,
                     'loc': loc,
@@ -1071,7 +1079,7 @@ def generate_qr(r_id):
     if not spot:
         return "Invalid reservation", 404
     amount = spot.cost or 10
-    NGROK_URL = " https://bf4fb81ab7cf.ngrok-free.app"
+    NGROK_URL = "https://5d0c42383418.ngrok-free.app"
     upi_link = f"{NGROK_URL}/mark_paid/{r_id}/{amount}"
     qr_img = qrcode.make(upi_link)
     qr_path = os.path.join(static_dir, f"qr_{r_id}.png")
