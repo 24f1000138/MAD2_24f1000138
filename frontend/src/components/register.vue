@@ -1,7 +1,7 @@
 <template>
   <div class="register-page">
     <div class="register-logo">
-      <img src="C:\Users\Muthukumar Natesan\Downloads\mad2_24f1000138\backend\static\ParkPal Logo Design.png" alt="ParkPal Logo" />
+      <img src="/frontend/src/assets/ParkPal Logo Design.png" alt="ParkPal Logo" />
     </div>
   <div class="register-card">
     <h2>Register</h2>
@@ -71,7 +71,7 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/Parking Icons Vector Pattern.png');
+  background-image: url('/frontend/src/assets/Parking Icons Vector Pattern.png');
   background-size: cover;
   background-position: center;
   padding: 2rem;

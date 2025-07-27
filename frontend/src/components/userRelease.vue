@@ -89,7 +89,7 @@ export default {
 
 <style scoped>
 .user-release {
-  background: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/user_dash.png') no-repeat center center fixed;
+  background: url('/frontend/src/assets/user_dash.png') no-repeat center center fixed;
   background-size: cover;
   min-height: 100vh;
   padding: 40px 20px;

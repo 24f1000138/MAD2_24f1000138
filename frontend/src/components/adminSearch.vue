@@ -126,7 +126,7 @@ export default {
   font-family: 'Segoe UI', sans-serif;
   min-height: 100vh;
   background: linear-gradient(135deg, #0e1117, #1a1f2b);
-  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/admin_dash.png'); 
+  background-image: url('/frontend/src/assets/admin_dash.png'); 
   background-size: cover;
   background-position: center;
   color: #ffffff;

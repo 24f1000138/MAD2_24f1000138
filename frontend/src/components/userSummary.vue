@@ -57,7 +57,7 @@ export default {
 
 <style scoped>
 .user-dashboard {
-  background: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/user_dash.png') no-repeat center center fixed;
+  background: url('/frontend/src/assets/user_dash.png') no-repeat center center fixed;
   background-size: cover;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   min-height: 100vh;

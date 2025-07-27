@@ -145,7 +145,7 @@ export default {
 <style scoped>
 .user-dashboard {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/user_dash.png');
+  background-image: url('/frontend/src/assets/user_dash.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

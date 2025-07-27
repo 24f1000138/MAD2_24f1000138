@@ -86,7 +86,7 @@ export default {
 </script>
 <style scoped>
 .user-dashboard {
-  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/user_dash.png');
+  background-image: url('/frontend/src/assets/user_dash.png');
   background-size: cover;
   background-position: center;
   padding: 50px 20px;
