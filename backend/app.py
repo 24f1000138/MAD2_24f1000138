@@ -22,9 +22,12 @@ import csv
 from io import StringIO
 import pytz
 import qrcode
+import platform
+
+if platform.system() == "Windows":
+    os.add_dll_directory(r"C:\GTK3\bin")
 
 IST = pytz.timezone('Asia/Kolkata')
-os.add_dll_directory(r"C:\GTK3\bin")
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
