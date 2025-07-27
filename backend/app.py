@@ -30,7 +30,8 @@ if platform.system() == "Windows":
 IST = pytz.timezone('Asia/Kolkata')
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
+#CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
+CORS(app, origins=["https://mad-2-24f1000138.vercel.app"], supports_credentials=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['JWT_SECRET_KEY'] = 'your-jwt-secret-key'
