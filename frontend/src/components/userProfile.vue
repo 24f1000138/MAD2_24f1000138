@@ -86,7 +86,7 @@ export default {
 </script>
 <style scoped>
 .user-dashboard {
-  background-image: url('/frontend/public/user_dash.png');
+  background-image: url('/user_dash.png');
   background-size: cover;
   background-position: center;
   padding: 50px 20px;

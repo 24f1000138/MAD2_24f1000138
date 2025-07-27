@@ -88,7 +88,7 @@ export default {
 .admin-dashboard {
   min-height: 100vh;
   background: linear-gradient(135deg, #0e1117, #1a1f2b);
-  background-image: url('/frontend/public/admin_dash.png'); 
+  background-image: url('/admin_dash.png'); 
   background-size: cover;
   background-position: center;
   padding: 20px;

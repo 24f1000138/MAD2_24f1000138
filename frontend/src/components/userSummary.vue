@@ -57,7 +57,7 @@ export default {
 
 <style scoped>
 .user-dashboard {
-  background: url('/frontend/public/user_dash.png') no-repeat center center fixed;
+  background: url('/user_dash.png') no-repeat center center fixed;
   background-size: cover;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   min-height: 100vh;

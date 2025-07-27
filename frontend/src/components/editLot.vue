@@ -96,7 +96,7 @@ export default {
   justify-content: center;
   align-items: center;
   background: linear-gradient(135deg, #0e1117, #1a1f2b);
-  background-image: url('/frontend/public/admin_dash.png');
+  background-image: url('/admin_dash.png');
   background-size: cover;
   background-position: center;
   font-family: 'Segoe UI', sans-serif;
