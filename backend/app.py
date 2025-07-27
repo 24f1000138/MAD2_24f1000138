@@ -73,7 +73,7 @@ def make_celery(app):
 celery = make_celery(app)
 mail= Mail(app)
 base_dir=os.path.dirname(os.path.abspath(__file__))
-static_dir=os.path.join(base_dir,'static')
+static_dir=os.path.join(app.root_path,'static')
 
 class User(db.Model):
     __tablename__ = 'user'
