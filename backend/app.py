@@ -741,8 +741,8 @@ def admin_summary():
     c2=graph_2()   
     return jsonify({
         'msg': 'Summary graphs generated successfully',
-        'revenue_graph': '/static/lot_earnings.png' if c1 != -1 else None,
-        'availability_graph': '/static/lot_availability.png' if c2 != -1 else None
+        'revenue_graph': 'https://mad2-24f1000138.onrender.com/static/lot_earnings.png' if c1 != -1 else None,
+        'availability_graph': 'https://mad2-24f1000138.onrender.com/static/lot_availability.png' if c2 != -1 else None
     }), 200
 
 @app.route('/user_summary', methods=['GET','OPTIONS'])
@@ -763,7 +763,7 @@ def user_summary():
             return jsonify({'msg': 'No data available for summary graphs'}), 404
         return jsonify({
         'msg': 'Summary graphs generated successfully',
-        'reservation_graph': '/static/lot_reservations.png',
+        'reservation_graph': 'https://mad2-24f1000138.onrender.com/static/lot_reservations.png',
         'name': user.name
 }), 200
 
@@ -1082,7 +1082,7 @@ def generate_qr(r_id):
     if not spot:
         return "Invalid reservation", 404
     amount = spot.cost or 10
-    NGROK_URL = "https://parkpal-backend.onrender.com"
+    NGROK_URL = "https://mad2-24f1000138.onrender.com"
     upi_link = f"{NGROK_URL}/mark_paid/{r_id}/{amount}"
     qr_img = qrcode.make(upi_link)
     qr_path = os.path.join(static_dir, f"qr_{r_id}.png")
