@@ -1,5 +1,9 @@
 <template>
-  <div class="register-container">
+  <div class="register-page">
+    <div class="register-logo">
+      <img src="C:\Users\Muthukumar Natesan\Downloads\mad2_24f1000138\backend\static\ParkPal Logo Design.png" alt="ParkPal Logo" />
+    </div>
+  <div class="register-card">
     <h2>Register</h2>
     <form @submit.prevent="register">
       <label for="name">Name:</label>
@@ -12,10 +16,11 @@
       <input type="text" v-model="addr" placeholder="Address" required />
       <label for="pin">PIN:</label>
       <input type="text" v-model="pin" placeholder="PIN" required />
-      <button type="submit">Submit</button>
-      <button @click="$router.push('/login')">Already have an Account?</button>
+      <button type="submit" class="primary">Submit</button>
+      <button @click="$router.push('/login')" class="secondary">Already have an Account?</button>
       <p v-if="msg" :class="{ error: error, success: !error }">{{ msg }}</p>
     </form>
+  </div>
   </div>
 </template>
 
@@ -58,25 +63,105 @@ export default {
   }
 }
 </script>
-
 <style scoped>
-.register-container {
-  max-width: 400px;
-  margin: auto;
-  padding: 1rem;
+.register-page {
+  height: 100vh;
+  background: linear-gradient(135deg, #0e1117, #1a1f2b);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/Parking Icons Vector Pattern.png');
+  background-size: cover;
+  background-position: center;
+  padding: 2rem;
 }
-input {
-  display: block;
+
+.register-logo img {
+  width: 180px;
+  margin-bottom: 20px;
+  border-radius: 50% / 40%; 
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.05); 
+  box-shadow: 0 0 10px rgba(52, 199, 89, 0.3);
+}
+
+.register-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
   width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+}
+
+.register-card h2 {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #cfcfcf;
+  font-size: 0.9rem;
+}
+
+input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border: none;
+  background-color: #1e2430;
+  color: white;
+}
+
+input:focus {
+  outline: 2px solid #34C759;
+}
+
+button.primary {
+  width: 100%;
+  padding: 12px;
+  background-color: #0078D4;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
   margin-bottom: 10px;
+  cursor: pointer;
 }
-button {
+
+button.secondary {
+  width: 100%;
   padding: 10px;
+  background-color: transparent;
+  border: 1px solid #34C759;
+  color: #34C759;
+  border-radius: 8px;
+  cursor: pointer;
 }
+
 .error {
-  color: red;
+  color: #ff4d4f;
+  text-align: center;
+  margin-top: 10px;
 }
+
 .success {
-  color: green;
+  color: #34C759;
+  text-align: center;
+  margin-top: 10px;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #1e2430 inset !important;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 </style>

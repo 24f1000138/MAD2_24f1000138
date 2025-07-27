@@ -65,22 +65,86 @@ export default {
 
 <style scoped>
 .add-container {
-  max-width: 400px;
-  margin: auto;
-  padding: 1rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #0e1117, #1a1f2b);
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/admin_dash.png'); 
+  background-size: cover;
+  background-position: center;
+  font-family: 'Segoe UI', sans-serif;
+  color: #ffffff;
+  padding: 2rem;
 }
-input {
-  display: block;
+.add-container form {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
   width: 100%;
-  margin-bottom: 10px;
+  max-width: 400px;
 }
+
+.add-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #00bfff;
+}
+label {
+  display: block;
+  margin-bottom: 6px;
+  color: #cfcfcf;
+  font-size: 0.9rem;
+}
+
+input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border: none;
+  background-color: #1e2430;
+  color: white;
+}
+
+input:focus {
+  outline: 2px solid #34C759;
+}
+
 button {
+  width: 48%;
+  margin-top: 10px;
+  margin-right: 4%;
   padding: 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  color: white;
+  background-color: #288c30;
+  transition: 0.3s ease;
 }
+
+button:last-of-type {
+  background-color: #4551a9;
+  margin-right: 0;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
 .error {
-  color: red;
+  color: #ff4d4f;
+  text-align: center;
+  margin-top: 10px;
 }
 .success {
-  color: green;
+  color: #34C759;
+  text-align: center;
+  margin-top: 10px;
 }
 </style>

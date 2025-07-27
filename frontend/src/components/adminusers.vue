@@ -82,77 +82,105 @@ export default {
 
 <style scoped>
 .admin-dashboard {
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0e1117, #1a1f2b);
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/admin_dash.png'); 
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
   padding: 20px;
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  max-width: 100%;
-  max-height: 100%;
 }
 
 .admin-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #0074d9;
-  padding: 10px 20px;
+  background-color: rgba(0, 120, 212, 0.95);
+  padding: 12px 24px;
   color: white;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
+
 .nav-links {
   display: flex;
-  gap: 15px;
+  gap: 20px;
 }
 
 .nav-links a {
   color: white;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 600;
+  transition: 0.3s ease;
 }
-.nav-links a:hover{
+
+.nav-links a:hover {
   text-decoration: underline;
+  color: #a6e2ff;
 }
-h2 {
-  color: #333;
-  margin-bottom: 15px;
-}
-button {
-  padding: 8px 16px;
-  border-radius: 5px;
-  border: none;
-  background-color: #2ecc71;
-  color: white;
+
+.welcome {
+  font-size: 18px;
   font-weight: bold;
-  cursor: pointer;
-  margin-top: 15px;
 }
-button:hover {
-  background-color: #27ae60;
-}
+
 .admin-users-content {
   max-width: 1200px;
   margin: 40px auto;
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
 }
+
+h2 {
+  font-size: 28px;
+  margin-bottom: 24px;
+  color: #00bfff;
+  text-align: center;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
+  margin-bottom: 20px;
   text-align: left;
+  color: #f5f5f5;
 }
 
 th, td {
   padding: 12px;
-  border: 1px solid #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 thead {
-  background-color: #eaf4ff;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: rgba(255, 255, 255, 0.05);
 }
+
+tbody tr:hover {
+  background-color: rgba(0, 120, 212, 0.15);
+}
+
+button {
+  padding: 12px 18px;
+  background-color: #2ecc71;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+button:hover {
+  background-color: #27ae60;
+}
+
 </style>

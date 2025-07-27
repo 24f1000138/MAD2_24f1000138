@@ -1,7 +1,7 @@
 <template>
   <div class="user-dashboard">
     <nav class="user-nav">
-        <span class="welcome">Welcome User</span>
+        <span class="welcome">Welcome {{ userName }}</span>
         <div class="nav-links">
             <router-link to="/user_dashboard">Home</router-link>
             <router-link to="/user_history">History</router-link>
@@ -118,133 +118,167 @@ export default {
   },
   mounted() {
     this.fetchSpots()
+  },
+  computed: {
+    userName() {
+      return this.rspots.length > 0 ? this.rspots[0].name : 'User';
+    }
   }
 }
 </script>
 <style scoped>
 .user-dashboard {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f7f9;
+  font-family: 'Segoe UI', sans-serif;
+  background-image: url('C:\\Users\\Muthukumar Natesan\\Downloads\\mad2_24f1000138\\frontend\\src\\assets\\user_dash.png');
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
   padding: 20px;
   min-height: 100vh;
 }
 
 .user-nav {
-  background-color: #d8f0e2;
-  padding: 10px 20px;
+  background-color: rgba(45, 62, 80, 0.9);
+  padding: 12px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .user-nav .welcome {
+  font-size: 1.2rem;
   font-weight: bold;
-  color: #e53935;
+  color: #f6b93b;
 }
 
-.nav-links a {
-  margin-left: 15px;
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links a,
+.edit-profile a {
+  color: #f0f8ff;
   text-decoration: none;
-  color: #2c3e50;
   font-weight: bold;
+  transition: color 0.2s;
 }
-.edit-profile{
-  color: white;
-  text-decoration: none;
-  font-weight: bold;
+
+.nav-links a:hover,
+.edit-profile a:hover {
+  color: #ffd700;
 }
-.edit-profile:hover{
-  text-decoration: underline;
-}
-.nav-links a:hover {
-  text-decoration: underline;
+
+.edit-profile a {
+  margin-left: 20px;
 }
 
 .users-content {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.4); 
+  backdrop-filter: blur(16px);                
+  -webkit-backdrop-filter: blur(16px);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 1200px;
+  margin: auto;
+  color: #2c3e50;
 }
 
 h2, h3 {
   margin-top: 0;
-  color: #34495e;
   text-align: center;
+  color: #2c3e50;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  color: #2c3e50;
 }
 
 th {
-  background-color: #2d4263;
+  background-color: #2c3e50;
   color: white;
-  padding: 10px;
+  padding: 12px;
   text-align: left;
 }
 
 td {
-  padding: 10px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid #ccc;
+  color: #2c3e50;
 }
 
 td button {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border: none;
-  border-radius: 5px;
-  background-color: #4CAF50;
+  border-radius: 6px;
+  background-color: #3498db;
   color: white;
   cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
 }
 
 td button:hover {
-  background-color: #388e3c;
+  background-color: #2c80b4;
 }
 
 td span {
+  display: inline-block;
   padding: 6px 12px;
   border-radius: 4px;
-  background-color: #ffebee;
-  color: #c62828;
+  background-color: #ffe5e5;
+  color: #c0392b;
   font-weight: bold;
 }
 
 .user_search {
-  margin-top: 40px;
-  background-color: #eef6f9;
-  padding: 20px;
-  border-radius: 8px;
+  margin-top: 50px;
+  background-color: rgba(255, 255, 255, 0.4); 
+  backdrop-filter: blur(16px);              
+  -webkit-backdrop-filter: blur(16px);
+  padding: 25px;
+  border-radius: 10px;
+  color: #2c3e50;
 }
 
 input[type="text"] {
-  padding: 8px;
-  margin-right: 10px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+  padding: 10px;
+  width: 300px;
+  margin-right: 15px;
+  border-radius: 6px;
+  border: 1px solid #bbb;
 }
 
 button[type="submit"] {
-  background-color: #1976d2;
+  background-color: #1abc9c;
   color: white;
-  padding: 8px 16px;
+  padding: 10px 18px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-}
-
-button[type="submit"]:hover {
-  background-color: #0d47a1;
-}
-
-.success {
-  color: green;
-  margin-top: 10px;
   font-weight: bold;
 }
 
+button[type="submit"]:hover {
+  background-color: #159d86;
+}
+
+.success {
+  color: #2ecc71;
+  margin-top: 12px;
+  font-weight: bold;
+  text-align: center;
+}
 </style>

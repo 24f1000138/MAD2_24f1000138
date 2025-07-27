@@ -86,22 +86,75 @@ export default {
 
 <style scoped>
 .add-container {
-  max-width: 400px;
-  margin: auto;
-  padding: 1rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #0e1117, #1a1f2b);
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/user_dash.png');
+  background-size: cover;
+  background-position: center;
+  font-family: 'Segoe UI', sans-serif;
+  color: #ffffff;
+  padding: 2rem;
 }
+
+.add-container form {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 400px;
+}
+.add-container h2 {
+  margin-bottom: 20px;
+  color: #ebeef1;
+}
+
+label {
+  display: block;
+  text-align: left;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
 input {
   display: block;
   width: 100%;
-  margin-bottom: 10px;
-}
-button {
   padding: 10px;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+button {
+  padding: 10px 18px;
+  margin: 10px 8px 0 8px;
+  border: none;
+  border-radius: 6px;
+  background-color: #2ecc71;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #27ae60;
 }
 .error {
-  color: red;
+  color: #c0392b;
+  margin-top: 16px;
+  font-weight: bold;
 }
 .success {
-  color: green;
+  color: #2ecc71;
+  margin-top: 16px;
+  font-weight: bold;
 }
 </style>

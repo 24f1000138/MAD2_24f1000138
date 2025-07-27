@@ -56,61 +56,79 @@ export default {
 
 <style scoped>
 .admin-dashboard {
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0e1117, #1a1f2b);
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/admin_dash.png');
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
   padding: 20px;
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
 }
 
 .admin-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #0074d9;
-  padding: 10px 20px;
+  background-color: rgba(0, 120, 212, 0.95);
+  padding: 12px 24px;
   color: white;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-.admin-summary-content {
-  max-width: 1000px;
-  margin: auto;
-  padding: auto;
-  align-content: center;
-
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 .nav-links {
   display: flex;
-  gap: 15px;
+  gap: 20px;
 }
 
-.nav-links a{
+.nav-links a {
   color: white;
   text-decoration: none;
+  font-weight: 600;
+  transition: 0.3s ease;
+}
+
+.nav-links a:hover {
+  text-decoration: underline;
+  color: #a6e2ff;
+}
+
+.welcome {
+  font-size: 18px;
   font-weight: bold;
 }
 
-.nav-links a:hover{
-  text-decoration: underline;
+.admin-summary-content {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+  text-align: center;
 }
 
 h2 {
-  color: #333;
-  margin-bottom: 15px;
+  font-size: 28px;
+  margin-bottom: 24px;
+  color: #00bfff;
 }
 .summary-graphs {
   display: flex;
-  flex-direction: row; 
   justify-content: center;
   gap: 20px;
-  flex-wrap: nowrap; 
+  flex-wrap: wrap;
 }
-
 .summary-graphs img {
-  width: 45%; 
+  width: 45%;
   height: auto;
-  border: 1px solid #ccc;
-  padding: 10px;
-  background: white;
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(6px);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.summary-graphs img:hover {
+  transform: scale(1.02);
+  transition: transform 0.3s ease;
 }
 </style>

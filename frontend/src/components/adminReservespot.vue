@@ -65,60 +65,80 @@ export default {
 </script>
 <style scoped>
 .view-container {
-  max-width: 500px;
-  margin: 40px auto;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #0e1117, #1a1f2b);
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/admin_dash.png');
+  background-size: cover;
+  background-position: center;
+  font-family: 'Segoe UI', sans-serif;
+  color: #ffffff;
+  padding: 2rem;
 }
 
+.view-container form {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 500px;
+}
 h2 {
   text-align: center;
-  color: #333;
-}
-
-button {
-  padding: 10px 20px;
-  margin-right: 10px;
-  border: none;
-  border-radius: 5px;
-  background-color: #2d4263;
-  color: white;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #1e2e4c;
-}
-
-.click {
-  color: #0074d9;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.click:hover {
-  text-decoration: underline;
-}
-
-.error {
-  color: red;
-}
-.success {
-  color: green;
-}
-input {
-  margin-bottom: 12px;
-  padding: 8px;
-  width: 100%;
-  box-sizing: border-box;
+  color: #00bfff;
+  margin-bottom: 20px;
 }
 
 label {
-  font-weight: 500;
   display: block;
-  margin-bottom: 4px;
-  color: #555;
+  margin-bottom: 6px;
+  color: #cfcfcf;
+  font-size: 0.9rem;
 }
+input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border: none;
+  background-color: #1e2430;
+  color: white;
+}
+
+input:focus {
+  outline: 2px solid #34C759;
+}
+button {
+  width: 100%;
+  padding: 12px;
+  background-color: #267fa2;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  margin-top: 10px;
+}
+
+button:hover {
+  background-color: #27ae60;
+}
+.error {
+  color: #ff4d4f;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.success {
+  color: #34C759;
+  text-align: center;
+  margin-top: 10px;
+}
+
 </style>

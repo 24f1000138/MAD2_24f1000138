@@ -1,7 +1,7 @@
 <template>
   <div class="user-dashboard">
     <nav class="user-nav">
-        <span class="welcome">Welcome User</span>
+        <span class="welcome">Welcome {{ name }}</span>
         <div class="nav-links">
             <router-link to="/user_dashboard">Home</router-link>
             <router-link to="/user_history">History</router-link>
@@ -26,7 +26,9 @@ export default {
     name: 'UserSummary',
   data() {
     return {
-      reservationGraph: ''
+      msg: '',
+      reservationGraph: '',
+      name: ''
     };
   },
   methods: {
@@ -40,6 +42,7 @@ export default {
         })
         .then(response => {
           this.reservationGraph = 'http://localhost:5000'+ response.data.reservation_graph + '?t=' + new Date().getTime();
+          this.name = response.data.name;
         })
         .catch(error => {
           console.error('Error fetching user summary:', error);
@@ -48,74 +51,90 @@ export default {
   },
   mounted() {
     this.fetchUserSummary();
-  }
+  },
 };
 </script>
 
 <style scoped>
 .user-dashboard {
+  background: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/user_dash.png') no-repeat center center fixed;
+  background-size: cover;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f7f9;
-  padding: 20px;
   min-height: 100vh;
+  padding: 20px;
 }
 
 .user-nav {
-  background-color: #d8f0e2;
-  padding: 10px 20px;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  padding: 12px 24px;
+  border-radius: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 .user-nav .welcome {
+  color: #f1c40f;
   font-weight: bold;
-  color: #e53935;
+  font-size: 1.1rem;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
 }
 
 .nav-links a {
-  margin-left: 15px;
-  text-decoration: none;
-  color: #2c3e50;
-  font-weight: bold;
-}
-.edit-profile{
   color: white;
   text-decoration: none;
   font-weight: bold;
 }
-.edit-profile:hover{
-  text-decoration: underline;
-}
+
 .nav-links a:hover {
   text-decoration: underline;
 }
 
-.users-content {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+.edit-profile a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
 }
 
-h2, h3 {
-  margin-top: 0;
-  color: #34495e;
-  text-align: center;
+.edit-profile a:hover {
+  text-decoration: underline;
 }
+
+.users-content {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+h2 {
+  color: #c7c4c4;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
 .summary-graphs {
   display: flex;
-  flex-direction: row; 
   justify-content: center;
-  gap: 20px;
-  flex-wrap: nowrap; 
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
 }
+
 .summary-graphs img {
-  width: 45%; 
+  max-width: 400px;
+  width: 100%;
   height: auto;
-  border: 1px solid #ccc;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  background-color: white;
   padding: 10px;
 }
 </style>

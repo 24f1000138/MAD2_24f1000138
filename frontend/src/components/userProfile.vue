@@ -1,4 +1,5 @@
 <template>
+  <div class="user-dashboard">
   <div class="edit-container">
     <h2>Edit Profile</h2>
     <form @submit.prevent="updateProfile">
@@ -10,11 +11,14 @@
       <input type="text" v-model="user.addr" placeholder="user.addr" required />
       <label for="pin">PIN:</label>
       <input type="text" v-model="user.pin" placeholder="user.pin" required />
+      <div class="button-group">
       <button type="submit">Submit</button>
       <button type="button" @click="$router.push('/user_dashboard')">Cancel</button>
+      </div>
       <p v-if="msg" :class="{ error: error, success: !error }">{{ msg }}</p>
     </form>
   </div>
+</div>
 </template>
 
 <script>
@@ -81,70 +85,102 @@ export default {
 }
 </script>
 <style scoped>
+.user-dashboard {
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/user_dash.png');
+  background-size: cover;
+  background-position: center;
+  padding: 50px 20px;
+  min-height: 100vh;
+}
 .edit-container {
-  max-width: 400px;
-  margin: 50px auto;
-  background: #f9f9f9;
-  padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: 60px auto;
+  padding: 30px;
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #2c3e50;
+  text-align: center;
 }
 
 .edit-container h2 {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  color: #333;
+  font-size: 1.8rem;
+  color: #2d3e50;
+  margin-bottom: 24px;
 }
 
 form {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
 }
 
 label {
-  margin-bottom: 0.25rem;
-  font-weight: 600;
-  color: #444;
+  text-align: left;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #34495e;
 }
 
 input {
-  margin-bottom: 1rem;
-  padding: 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 12px;
   font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 18px;
 }
 
 input:focus {
-  border-color: #007BFF;
+  border-color: #1abc9c;
   outline: none;
 }
-
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
 button {
+  flex: 1;
   padding: 0.7rem;
-  background-color: #007BFF;
-  color: white;
+  font-size: 1rem;
   border: none;
   border-radius: 6px;
-  font-size: 1rem;
+  font-weight: bold;
+  color: white;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-button:hover {
-  background-color: #0056b3;
+button[type="submit"] {
+  background-color: #2ecc71;
 }
 
+button[type="submit"]:hover {
+  background-color: #27ae60;
+}
+
+button[type="button"] {
+  background-color: #e74c3c;
+}
+
+button[type="button"]:hover {
+  background-color: #c0392b;
+}
 p {
-  text-align: center;
-  margin-top: 1rem;
+  margin-top: 16px;
   font-weight: bold;
 }
 
 .success {
-  color: green;
+  color: #27ae60;
 }
 
 .error {
-  color: red;
+  color: #e74c3c;
 }
+
 </style>

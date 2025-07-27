@@ -84,84 +84,99 @@ export default {
   }
 }
 </script>
-
 <style scoped>
 .admin-dashboard {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0e1117, #1a1f2b);
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/admin_dash.png'); 
+  background-size: cover;
+  background-position: center;
   padding: 20px;
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
+  font-family: 'Segoe UI', sans-serif;
+  color: #f0f0f0;
 }
-
 .admin-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #0074d9;
-  padding: 10px 20px;
+  background-color: rgba(0, 120, 212, 0.95);
+  padding: 12px 24px;
   color: white;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-.admin-dashboard-content {
-  max-width: 100%;
-  margin: auto;
-  padding: auto;
-  align-content: center;
-
-}
-.lot-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px; 
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .nav-links {
   display: flex;
-  gap: 15px;
+  gap: 20px;
 }
 
-.nav-links a,
-.edit-profile {
+.nav-links a {
   color: white;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 600;
+  transition: 0.3s ease;
 }
 
-.nav-links a:hover,
-.edit-profile:hover {
+.nav-links a:hover {
   text-decoration: underline;
+  color: #a6e2ff;
+}
+
+.welcome {
+  font-size: 18px;
+  font-weight: bold;
+}
+.admin-dashboard-content {
+  text-align: center;
+  padding: 20px;
 }
 
 h2 {
-  color: #333;
-  margin-bottom: 15px;
+  color: #ffffff;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.lot-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
 }
 
 .lot-card {
-  background-color: white;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  width:100%;
-  max-width: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+  width: 300px;
+  text-align: left;
 }
 
 .lot-card h3 {
-  margin-top: 0;
+  color: #00bfff;
   margin-bottom: 10px;
-  color: #0074d9;
+}
+
+.lot-card p {
+  color: #cfd3dc;
+  margin: 6px 0;
+  font-size: 14px;
 }
 
 .lot-card button {
   margin-right: 10px;
   padding: 6px 12px;
   border: none;
-  border-radius: 5px;
-  background-color: #0074d9;
+  border-radius: 6px;
+  background-color: #0078d4;
   color: white;
+  font-weight: 500;
   cursor: pointer;
+  transition: 0.2s ease;
 }
 
 .lot-card button:hover {
@@ -174,37 +189,40 @@ h2 {
   gap: 10px;
   margin-top: 10px;
 }
-
 .spot-square {
-  width: 30px;
-  height: 30px;
-  background-color: lightgreen;
-  border: 1px solid #333;
+  width: 32px;
+  height: 32px;
+  background-color: #2ecc71;
+  border: 1px solid #2c3e50;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   font-weight: bold;
-  font-size: 16px;
+  color: black;
+  border-radius: 4px;
+  transition: transform 0.2s ease;
 }
+
 .spot-square:hover {
   transform: scale(1.1);
 }
+
 .spot-square.occupied {
-  background-color: tomato;
+  background-color: #e74c3c;
   color: white;
 }
+
 button {
-  padding: 8px 16px;
-  border-radius: 5px;
+  padding: 10px 16px;
+  border-radius: 8px;
   border: none;
   background-color: #2ecc71;
   color: white;
   font-weight: bold;
   cursor: pointer;
-  margin-top: 15px;
+  margin-top: 20px;
+  transition: 0.3s ease;
 }
-
 button:hover {
   background-color: #27ae60;
 }

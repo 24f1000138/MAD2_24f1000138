@@ -1,7 +1,7 @@
 <template>
   <div class="user-dashboard">
     <nav class="user-nav">
-        <span class="welcome">Welcome User</span>
+        <span class="welcome">Welcome {{ userName }}</span>
         <div class="nav-links">
             <router-link to="/user_dashboard">Home</router-link>
             <router-link to="/user_history">History</router-link>
@@ -10,7 +10,7 @@
         </div>
         <span class="edit-profile"><router-link to="/user_profile">Edit Profile</router-link></span>
     </nav>
-    <div class="users-content"></div>
+    <div class="users-content">
     <h2>Full User History</h2>
     <table>
       <thead>
@@ -40,7 +40,9 @@
       </tbody>
     </table>
     <button @click="triggerCSV">Trigger and Download (CSV)</button>
+
     </div>
+    
 
     <div v-if="showQRCodeModal" class="qr-code-modal">
       <div class="qr-code-content">
@@ -49,6 +51,7 @@
         <button @click="closeQRCode">Close</button>
       </div>
     </div>
+  </div>
 </template> 
 
 <script>
@@ -130,6 +133,11 @@ export default {
   },
   mounted() {
     this.fetchHistory()
+  },
+  computed: {
+    userName() {
+      return this.rspots.length > 0 ? this.rspots[0].name : 'User';
+    }
   }
 }
 </script>
@@ -137,80 +145,136 @@ export default {
 <style scoped>
 .user-dashboard {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f7f9;
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/user_dash.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   padding: 20px;
   min-height: 100vh;
+  color: #2c3e50;
 }
 
 .user-nav {
-  background-color: #d8f0e2;
-  padding: 10px 20px;
+  background-color: rgba(45, 62, 80, 0.9);
+  padding: 12px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .user-nav .welcome {
+  font-size: 1.2rem;
   font-weight: bold;
-  color: #e53935;
+  color: #f6b93b;
 }
-.users-content {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
+
 .nav-links {
   display: flex;
-  gap: 15px;
+  gap: 20px;
 }
 
 .nav-links a,
-.edit-profile {
-  color: white;
+.edit-profile a {
+  color: #f0f8ff;
   text-decoration: none;
   font-weight: bold;
+  transition: color 0.2s;
 }
+
 .nav-links a:hover,
-.edit-profile:hover {
-  text-decoration: underline;
+.edit-profile a:hover {
+  color: #ffd700;
 }
+
+.edit-profile a {
+  margin-left: 20px;
+}
+
+.users-content {
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  max-width: 1200px;
+  margin: auto;
+}
+
 h2 {
-  color: #333;
-  margin-bottom: 15px;
+  color: #2d3e50;
+  text-align: center;
+  margin-bottom: 20px;
 }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  background-color: #ffffffc2;
+}
+
+th {
+  background-color: #34495e;
+  color: white;
+  padding: 12px;
+  text-align: left;
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid #ccc;
+  color: #2c3e50;
+  background-color: #fcfcfc;
+}
+
+tbody tr:nth-child(even) td {
+  background-color: #f3f3f3;
+}
+
+td span {
+  font-weight: bold;
+  cursor: pointer;
+}
+
+td span[style*="green"] {
+  background-color: #eafaf1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: #2e7d32;
+}
+
+td span[style*="red"] {
+  background-color: #fdecea;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: #c0392b;
+}
+
 button {
-  padding: 8px 16px;
-  border-radius: 5px;
+  padding: 10px 18px;
+  border-radius: 6px;
   border: none;
   background-color: #2ecc71;
   color: white;
   font-weight: bold;
   cursor: pointer;
-  margin-top: 15px;
+  margin-top: 20px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  transition: background-color 0.3s;
 }
+
 button:hover {
   background-color: #27ae60;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-th, td {
-  padding: 12px;
-  border: 1px solid #ccc;
-}
-
-thead {
-  background-color: #eaf4ff;
-}
-
-tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
 }
 .qr-code-modal {
   position: fixed;
@@ -222,19 +286,24 @@ tbody tr:nth-child(even) {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 999;
 }
 
 .qr-code-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  padding: 30px;
+  border-radius: 16px;
   text-align: center;
-  box-shadow: 0px 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
+  color: #2c3e50;
 }
 
 .qr-code-content img {
   width: 200px;
   height: 200px;
   margin: 20px 0;
+  border: 4px solid #2c3e50;
+  border-radius: 8px;
 }
 </style>

@@ -1,4 +1,5 @@
 <template>
+<div class="view-dashboard">
   <div class="view-container">
     <h2>View Parking Spot</h2>
        <p><strong>ID:</strong> {{ spot.spot_id }}</p>
@@ -9,6 +10,7 @@
       <button @click="deletespot(spot.spot_id)">Delete</button>
       <button @click="$router.push('/admin_dashboard')">Cancel</button>
       <p v-if="msg" :class="{ error: error, success: !error }">{{ msg }}</p>
+  </div>
   </div>
 </template>
 
@@ -70,53 +72,87 @@ export default {
 }
 </script>
 <style scoped>
-.view-container {
-  max-width: 500px;
-  margin: 40px auto;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
+.view-dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #0e1117, #1a1f2b);
+  background-image: url('C:/Users/Muthukumar Natesan/Downloads/mad2_24f1000138/frontend/src/assets/admin_dash.png'); 
+  background-size: cover;
+  background-position: center;
+  font-family: 'Segoe UI', sans-serif;
+  color: #ffffff;
+  padding: 2rem;
+}
+.view-container{
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 400px;
 }
 
 h2 {
   text-align: center;
-  color: #333;
+  color: #f1c40f;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
 }
 
 p {
-  font-size: 16px;
-  margin-bottom: 12px;
+  font-size: 1.1rem;
+  margin: 0.8rem 0;
+  color: #f9f9f9;
+}
+
+strong {
+  color: #f1c40f;
 }
 
 button {
   padding: 10px 20px;
-  margin-right: 10px;
+  margin: 12px 8px 0 0;
   border: none;
-  border-radius: 5px;
-  background-color: #2d4263;
+  border-radius: 8px;
+  background-color: #3498db;
   color: white;
   cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
 }
 
 button:hover {
-  background-color: #1e2e4c;
+  background-color: #2c80b4;
 }
 
 .click {
-  color: #0074d9;
+  color: #00e6e6;
   font-weight: bold;
   cursor: pointer;
+  padding-left: 5px;
 }
 
 .click:hover {
   text-decoration: underline;
+  color: #1abc9c;
 }
 
 .error {
-  color: red;
+  color: #ff6b6b;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 1rem;
 }
+
 .success {
-  color: green;
+  color: #2ecc71;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 1rem;
 }
+
 </style>
