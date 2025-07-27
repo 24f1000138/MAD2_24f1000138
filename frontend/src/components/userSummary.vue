@@ -34,7 +34,7 @@ export default {
   methods: {
     fetchUserSummary() {
       const token = localStorage.getItem('token')
-      axios.get('http://localhost:5000/user_summary', {
+      axios.get('https://mad2-24f1000138.onrender.com/user_summary', {
           headers: {
             Authorization: `Bearer ${token}`
           },

@@ -43,7 +43,7 @@ export default {
       const lotid = this.$route.params.lot_id
       const token = localStorage.getItem('token')
       try {
-        const response = await axios.get(`http://localhost:5000/admin_editlot/${lotid}`, {
+        const response = await axios.get(`https://mad2-24f1000138.onrender.com/admin_editlot/${lotid}`, {
           headers: {
             Authorization: `Bearer ${token}`
           },
@@ -59,7 +59,7 @@ export default {
       const lotid = this.$route.params.lot_id
       const token = localStorage.getItem('token')
       try {
-        const response = await axios.post(`http://localhost:5000/admin_editlot/${lotid}`, {
+        const response = await axios.post(`https://mad2-24f1000138.onrender.com/admin_editlot/${lotid}`, {
 
           name: this.lot.name,
           address: this.lot.address,

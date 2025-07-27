@@ -33,7 +33,7 @@ export default {
   methods: {
     fetchSummaryGraphs() {
       const token = localStorage.getItem('token')
-      axios.get('http://localhost:5000/admin_summary', {
+      axios.get('https://mad2-24f1000138.onrender.com/admin_summary', {
         headers: {
           Authorization: `Bearer ${token}`
         },

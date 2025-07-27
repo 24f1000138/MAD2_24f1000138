@@ -42,7 +42,7 @@ export default {
     async fetchUser() {
       const token = localStorage.getItem('token')
       try {
-        const response = await axios.get('http://localhost:5000/user_profile', {
+        const response = await axios.get('https://mad2-24f1000138.onrender.com/user_profile', {
           headers: {
             Authorization: `Bearer ${token}`
           },
@@ -57,7 +57,7 @@ export default {
     async updateProfile() {
       const token = localStorage.getItem('token')
       try {
-        const response = await axios.post('http://localhost:5000/user_profile', {
+        const response = await axios.post('https://mad2-24f1000138.onrender.com/user_profile', {
 
           name: this.user.name,
           email: this.user.email,

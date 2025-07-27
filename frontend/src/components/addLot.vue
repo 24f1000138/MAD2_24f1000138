@@ -39,7 +39,7 @@ export default {
     async addLot() {
       const token= localStorage.getItem('token')
       try {
-        const response = await axios.post('http://localhost:5000/admin_addlot', {
+        const response = await axios.post('https://mad2-24f1000138.onrender.com/admin_addlot', {
           name: this.name,
           address: this.address,
           pinc: this.pinc,

@@ -86,7 +86,7 @@ export default {
       this.submittedQuery = this.searchQuery.trim()
       const token = localStorage.getItem('token');
       const searchBy = this.searchBy || 'location';
-      const url = `http://localhost:5000/admin_search?searchBy=${searchBy}&query=${this.searchQuery}`;
+      const url = `https://mad2-24f1000138.onrender.com/admin_search?searchBy=${searchBy}&query=${this.searchQuery}`;
 
       fetch(url, {
         method: 'GET',

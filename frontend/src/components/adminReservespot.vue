@@ -44,7 +44,7 @@ export default {
       const spotid = this.$route.params.spot_id
       const token = localStorage.getItem('token')
       try {
-        const response = await axios.get(`http://localhost:5000/admin_reservespot/${spotid}`, {
+        const response = await axios.get(`https://mad2-24f1000138.onrender.com/admin_reservespot/${spotid}`, {
           headers: {
             Authorization: `Bearer ${token}`
           },

@@ -85,7 +85,7 @@ export default {
   methods: {   
     async fetchSpots() {
       const token = localStorage.getItem('token')
-      const response = await axios.get('http://localhost:5000/user_dashboard', {
+      const response = await axios.get('https://mad2-24f1000138.onrender.com/user_dashboard', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -101,7 +101,7 @@ export default {
     },
   async search() {
       const token = localStorage.getItem('token')
-      const response = await axios.get(`http://localhost:5000/user_search?query=${this.searchQuery}`, {
+      const response = await axios.get(`https://mad2-24f1000138.onrender.com/user_search?query=${this.searchQuery}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
