@@ -129,7 +129,7 @@ export default {
 <style scoped>
 .user-dashboard {
   font-family: 'Segoe UI', sans-serif;
-  background-image: url('/frontend/src/assets/user_dash.png');
+  background-image: url('/frontend/public/user_dash.png');
   background-size: cover;
   background-position: center;
   color: #ffffff;

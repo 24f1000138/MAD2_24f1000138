@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="login-logo">
-      <img src="/frontend/src/assets/ParkPal Logo Design.png" alt="ParkPal Logo" />
+      <img src="/frontend/public/ParkPal Logo Design.png" alt="ParkPal Logo" />
     </div>
     <div class="login-card">
       <h2>Sign in</h2>
@@ -66,7 +66,7 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-image: url('/frontend/src/assets/Parking Icons Vector Pattern.png');
+  background-image: url('/frontend/public/Parking Icons Vector Pattern.png');
   background-size: cover;
   background-position: center;
   padding: 2rem;

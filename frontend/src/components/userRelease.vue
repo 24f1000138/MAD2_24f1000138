@@ -89,7 +89,7 @@ export default {
 
 <style scoped>
 .user-release {
-  background: url('/frontend/src/assets/user_dash.png') no-repeat center center fixed;
+  background: url('/frontend/public/user_dash.png') no-repeat center center fixed;
   background-size: cover;
   min-height: 100vh;
   padding: 40px 20px;
