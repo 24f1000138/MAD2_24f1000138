@@ -1079,7 +1079,7 @@ def generate_qr(r_id):
     if not spot:
         return "Invalid reservation", 404
     amount = spot.cost or 10
-    NGROK_URL = "https://5d0c42383418.ngrok-free.app"
+    NGROK_URL = "https://parkpal-backend.onrender.com"
     upi_link = f"{NGROK_URL}/mark_paid/{r_id}/{amount}"
     qr_img = qrcode.make(upi_link)
     qr_path = os.path.join(static_dir, f"qr_{r_id}.png")

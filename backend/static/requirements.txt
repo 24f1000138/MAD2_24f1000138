@@ -11,3 +11,4 @@ redis==5.0.1
 Flask-Mail==0.9.1
 pytz==2024.1
 qrcode==7.4.2
+gunicorn==21.2.0
