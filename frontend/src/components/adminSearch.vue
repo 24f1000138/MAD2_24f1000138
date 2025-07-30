@@ -39,7 +39,7 @@
     <div v-if="results.length > 0 && searchBy === 'user'" class="results">
         <h3>Example search user @{{ submittedQuery }}</h3>
         <div v-for="res in results" :key="res.user_id" class="result-item">
-            <h4>User ID: {{ res.user_id }}</h4>
+            <h4>User ID: {{ res.u_id }}</h4>
             <p>Name: {{ res.name }}</p>
             <p>Email: {{ res.email }}</p>
             <p>Address: {{ res.addr }}</p>
@@ -86,15 +86,14 @@ export default {
       this.submittedQuery = this.searchQuery.trim()
       const token = localStorage.getItem('token');
       const searchBy = this.searchBy || 'location';
-      const url = `https://mad2-24f1000138.onrender.com/admin_search?searchBy=${searchBy}&query=${this.searchQuery}`;
+      const url = `http://localhost:5000/admin_search?searchBy=${searchBy}&query=${this.searchQuery}`;
 
       fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         },
-        withCredentials: true
+        credentials: 'include'
       })
       .then(response => response.json())
       .then(data => {

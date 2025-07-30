@@ -134,7 +134,7 @@ export default {
   }
   setTimeout(() => {
     this.pollPaymentStatus(r_id);
-  }, 7000); 
+  }, 15000); 
   },
   async pollPaymentStatus(r_id) {
   const maxAttempts = 15;
