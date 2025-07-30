@@ -50,7 +50,7 @@ export default {
   methods: {   
     async fetchUsers() {
       const token = localStorage.getItem('token')
-      const response = await axios.get('https://mad2-24f1000138.onrender.com/admin_users', {
+      const response = await axios.get('http://localhost:5000/admin_users', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -61,7 +61,7 @@ export default {
     async triggerCSV() {
       const token = localStorage.getItem('token')
   try {
-    const response = await fetch('https://mad2-24f1000138.onrender.com/trigger_csv', {
+    const response = await fetch('http://localhost:5000/trigger_csv', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

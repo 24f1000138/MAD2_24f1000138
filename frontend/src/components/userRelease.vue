@@ -46,7 +46,7 @@ export default {
       const rid = this.$route.params.r_id
       const token= localStorage.getItem('token')
       try {
-        const response = await axios.post(`https://mad2-24f1000138.onrender.com/user_release/${rid}`, {}, {
+        const response = await axios.post(`http://localhost:5000/user_release/${rid}`, {}, {
           headers: {
             Authorization: `Bearer ${token}`
           },
@@ -65,7 +65,7 @@ export default {
   const r_id = this.$route.params.r_id
   const token = localStorage.getItem('token')
   try {
-    const response = await axios.get(`https://mad2-24f1000138.onrender.com/user_release/${r_id}`, {
+    const response = await axios.get(`http://localhost:5000/user_release/${r_id}`, {
       headers: {
         Authorization: `Bearer ${token}`
       },

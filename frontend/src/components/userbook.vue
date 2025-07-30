@@ -40,7 +40,7 @@ export default {
       const lotid = this.$route.params.lot_id
       const token= localStorage.getItem('token')
       try {
-        const response = await axios.post(`https://mad2-24f1000138.onrender.com/user_book/${lotid}`, {
+        const response = await axios.post(`http://localhost:5000/user_book/${lotid}`, {
           lot_id: this.id.lot_id,
           spot_id: this.id.spot_id,
           u_id: this.id.u_id,
@@ -64,7 +64,7 @@ export default {
   const lotid = this.$route.params.lot_id
   const token = localStorage.getItem('token')
   try {
-    const response = await axios.get(`https://mad2-24f1000138.onrender.com/user_book/${lotid}`, {
+    const response = await axios.get(`http://localhost:5000/user_book/${lotid}`, {
       headers: {
         Authorization: `Bearer ${token}`
       },

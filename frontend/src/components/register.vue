@@ -43,7 +43,7 @@ export default {
   methods: {
     async register() {
       try {
-        const response = await axios.post('https://mad2-24f1000138.onrender.com/register', {
+        const response = await axios.post('http://localhost:5000/register', {
           name: this.name,
           email: this.email,
           password: this.password,

@@ -47,8 +47,8 @@
     <div v-if="showQRCodeModal" class="qr-code-modal">
       <div class="qr-code-content">
         <h3>Scan QR Code to Pay</h3>
+        <p>Use this tunnel password to complete your payment: {{ tpwd }}</p>
         <img :src="qrCodeUrl" alt="QR Code" />
-        <button @click="closeQRCode">Close</button>
       </div>
     </div>
   </div>
@@ -63,13 +63,14 @@ export default {
     return {
       rspots: [],
       showQRCodeModal: false,
-      qrCodeUrl: ''
+      qrCodeUrl: '',
+      tpwd:''
     }
   },
   methods: {   
     async fetchHistory() {
       const token = localStorage.getItem('token')
-      const response = await axios.get('https://mad2-24f1000138.onrender.com/user_history', {
+      const response = await axios.get('http://localhost:5000/user_history', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -84,7 +85,7 @@ export default {
     async triggerCSV() {
       const userId = this.rspots[0].u_id
   try {
-    const res = await fetch(`https://mad2-24f1000138.onrender.com/trigger_csv/${userId}`, {
+    const res = await fetch(`http://localhost:5000/trigger_csv/${userId}`, {
       method: 'POST',
       headers: {
         Authorization: 'Bearer ' + localStorage.getItem('token'),
@@ -99,8 +100,8 @@ export default {
     let fileReady = false;
 
     while (attempts < maxAttempts && !fileReady) {
-      await delay(3000); 
-      const check = await fetch(`https://mad2-24f1000138.onrender.com/check_csv/${userId}`, {
+      await delay(3000);
+      const check = await fetch(`http://localhost:5000/check_csv/${userId}`, {
         headers: {
           Authorization: 'Bearer ' + localStorage.getItem('token'),
         },
@@ -113,7 +114,7 @@ export default {
       attempts++;
     }
     if (fileReady) {
-      window.open(`https://mad2-24f1000138.onrender.com/download_csv/${userId}`, '_blank');
+      window.open(`http://localhost:5000/download_csv/${userId}`, '_blank');
     } else {
       alert("CSV not ready. Please try again later.");
     }
@@ -121,9 +122,37 @@ export default {
     console.error('Error:', err);
   }
     },
-    showQRCode(r_id) {
-    this.qrCodeUrl = `https://mad2-24f1000138.onrender.com/generate_qr/${r_id}`
+    async showQRCode(r_id) {
+    this.qrCodeUrl = `http://localhost:5000/generate_qr/${r_id}`
     this.showQRCodeModal = true
+    try {
+    const response = await fetch('http://localhost:5000/get_tunnel_password');
+    const data = await response.json();
+    this.tpwd = data.password;
+  } catch (err) {
+    this.tpwd = 'Unavailable';
+  }
+  setTimeout(() => {
+    this.pollPaymentStatus(r_id);
+  }, 7000); 
+  },
+  async pollPaymentStatus(r_id) {
+  const maxAttempts = 15;
+  const delay = ms => new Promise(res => setTimeout(res, ms));
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await delay(3000); 
+
+    const res = await fetch(`http://localhost:5000/check_payment_status/${r_id}`);
+    const data = await res.json();
+
+    if (data.status === 'Paid') {
+      this.closeQRCode();           
+      await this.fetchHistory();    
+      alert("Payment confirmed!");
+      break;
+    }
+  }
   },
 
   closeQRCode() {

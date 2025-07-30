@@ -45,7 +45,7 @@ export default {
     
     async fetchLots() {
       const token = localStorage.getItem('token')
-      const response = await axios.get('https://mad2-24f1000138.onrender.com/admin_dashboard', {
+      const response = await axios.get('http://localhost:5000/admin_dashboard', {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json' 
@@ -59,7 +59,7 @@ export default {
     },
     deleteLot(lot_id) {
       const token = localStorage.getItem('token')
-     axios.delete(`https://mad2-24f1000138.onrender.com/admin_dashboard/${lot_id}`, {
+     axios.delete(`http://localhost:5000/admin_dashboard/${lot_id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

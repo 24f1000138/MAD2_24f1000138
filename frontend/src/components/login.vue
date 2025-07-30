@@ -35,7 +35,7 @@ export default {
   methods: {
     async login() {
       try {
-        const response = await axios.post('https://mad2-24f1000138.onrender.com/login', {
+        const response = await axios.post('http://localhost:5000/login', {
           email: this.email,
           password: this.password
         })

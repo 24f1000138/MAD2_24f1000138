@@ -34,7 +34,7 @@ export default {
       const spotid = this.$route.params.spot_id
       const token = localStorage.getItem('token')
       try {
-        const response = await axios.get(`https://mad2-24f1000138.onrender.com/admin_viewspot/${spotid}`, {
+        const response = await axios.get(`http://localhost:5000/admin_viewspot/${spotid}`, {
           headers: {
             Authorization: `Bearer ${token}`
           },
@@ -49,7 +49,7 @@ export default {
     async deletespot(spot_id) {
         const token = localStorage.getItem('token')
       try {
-        await axios.delete(`https://mad2-24f1000138.onrender.com/admin_viewspot/${spot_id}`, {
+        await axios.delete(`http://localhost:5000/admin_viewspot/${spot_id}`, {
           headers: {
             Authorization: `Bearer ${token}`
           },

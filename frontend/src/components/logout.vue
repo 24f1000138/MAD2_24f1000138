@@ -30,7 +30,7 @@ export default {
     async logout() {
       const token = localStorage.getItem('token')
       try {
-        const response = await axios.post('https://mad2-24f1000138.onrender.com/logout', {}, {
+        const response = await axios.post('http://localhost:5000/logout', {}, {
             headers: {
             Authorization: `Bearer ${token}`
           }

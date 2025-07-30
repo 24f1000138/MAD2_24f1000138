@@ -34,14 +34,14 @@ export default {
   methods: {
     fetchUserSummary() {
       const token = localStorage.getItem('token')
-      axios.get('https://mad2-24f1000138.onrender.com/user_summary', {
+      axios.get('http://localhost:5000/user_summary', {
           headers: {
             Authorization: `Bearer ${token}`
           },
           withCredentials: true
         })
         .then(response => {
-          this.reservationGraph = 'https://mad2-24f1000138.onrender.com'+ response.data.reservation_graph + '?t=' + new Date().getTime();
+          this.reservationGraph = 'http://localhost:5000'+ response.data.reservation_graph + '?t=' + new Date().getTime();
           this.name = response.data.name;
         })
         .catch(error => {

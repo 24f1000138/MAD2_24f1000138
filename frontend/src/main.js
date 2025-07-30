@@ -22,8 +22,7 @@ import AdminSearch from './components/adminSearch.vue'
 
 axios.defaults.headers.common['Content-Type'] = 'application/json'
 axios.defaults.headers.common['Accept'] = 'application/json'
-axios.defaults.baseURL = 'https://mad2-24f1000138.onrender.com';
-// axios.defaults.baseURL = 'http://localhost:5000'; // Uncomment for local development
+ axios.defaults.baseURL = 'http://localhost:5000'; 
 axios.defaults.withCredentials = true; 
 
 const routes = [
