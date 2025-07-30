@@ -128,11 +128,11 @@ class Vehicle(db.Model):
 CELERYBEAT_SCHEDULE = {
     'daily_rem':{
         'task': 'tasks.send_reminder',
-        'schedule': crontab(hour=13, minute=30), 
+        'schedule': crontab(hour=23, minute=30), 
     },
     'monthly_rep': {
         'task': 'tasks.generate_monthly_report',
-        'schedule': crontab(day_of_month=30, hour=13, minute=30), 
+        'schedule': crontab(day_of_month=30, hour=23, minute=30), 
     }
 }
 celery.conf.beat_schedule = CELERYBEAT_SCHEDULE
@@ -370,11 +370,11 @@ def graph_2():
     bar.savefig(bar_path)
     plt.close()
 
-def graph_3():
+def graph_3(user_id):
     data= db.session.query(
         ParkingLot.name,
         func.sum(case((ReserveParkingSpot.end_time.isnot(None), 1),else_=0)).label('reservation_count')
-    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).join(ReserveParkingSpot, ParkingSpot.spot_id == ReserveParkingSpot.spot_id).filter(~ParkingLot.name.ilike('__deleted__%')).group_by(ParkingLot.name).all()
+    ).join(ParkingSpot, ParkingLot.lot_id == ParkingSpot.lot_id).join(ReserveParkingSpot, ParkingSpot.spot_id == ReserveParkingSpot.spot_id).filter(~ParkingLot.name.ilike('__deleted__%'), ReserveParkingSpot.u_id == user_id).group_by(ParkingLot.name).all()
     if not data:
         return -1
     lot_names = [row[0] for row in data]
@@ -385,7 +385,7 @@ def graph_3():
     plt.ylabel('Number of Reservations')
     plt.title('Summary on already used parking spots')
     plt.xticks(rotation=45)
-    bar_path = os.path.join(static_dir, 'lot_reservations.png')
+    bar_path = os.path.join(static_dir, f'lot_reservations_{user_id}.png')
     bar.savefig(bar_path)
     plt.close()
 
@@ -507,7 +507,7 @@ def admin_dashboard():
     p_lots = ParkingLot.query.filter(~ParkingLot.name.ilike('__deleted__%')).all()
     data = []
     for lot in p_lots:
-        spots= ParkingSpot.query.filter_by(lot_id=lot.lot_id).all()
+        spots= ParkingSpot.query.filter(ParkingSpot.lot_id==lot.lot_id, ParkingSpot.status != 'X').all()
         reserved_spots = ReserveParkingSpot.query.join(ParkingSpot).filter(ParkingSpot.lot_id == lot.lot_id, ReserveParkingSpot.end_time == None).count()
         data.append({
             'lot_id': lot.lot_id,
@@ -589,7 +589,8 @@ def admin_editlot(lot_id):
                     return jsonify({'msg': 'Cannot reduce Parking Lot with reserved spots'}), 400
                 available_spots = ParkingSpot.query.filter_by(lot_id=lot.lot_id, status='A').limit(n - lot.num).all()
                 for spot in available_spots:
-                    db.session.delete(spot)
+                    spot.status = 'X'
+                    db.session.commit()
             db.session.commit()
             cache.delete(f"admin_dashboard_1")
             return jsonify({'msg': 'Parking Lot updated successfully'}), 200
@@ -750,16 +751,17 @@ def user_summary():
     print(current_user)
     if not current_user.get('admin'):
         user_id = current_user.get("sub")
+        u_id=int(user_id)
         user = User.query.get(int(user_id))
         if not user:
             return jsonify({'msg': 'User not found'}), 404
         
-        c3=graph_3()
+        c3=graph_3(u_id)
         if c3 == -1:
             return jsonify({'msg': 'No data available for summary graphs'}), 404
         return jsonify({
         'msg': 'Summary graphs generated successfully',
-        'reservation_graph': '/static/lot_reservations.png',
+        'reservation_graph': f'/static/lot_reservations_{user_id}.png',
         'name': user.name
 }), 200
 
