@@ -22,16 +22,13 @@ import csv
 from io import StringIO
 import pytz
 import qrcode
-import platform
+import requests
 
-if platform.system() == "Windows":
-    os.add_dll_directory(r"C:\GTK3\bin")
-
+os.add_dll_directory(r"C:\GTK3\bin")
 IST = pytz.timezone('Asia/Kolkata')
 
 app = Flask(__name__)
-#CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
-CORS(app, origins=["https://mad-2-24f1000138.vercel.app"], supports_credentials=True)
+CORS(app, origins=["http://localhost:5173"], supports_credentials=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['JWT_SECRET_KEY'] = 'your-jwt-secret-key'
@@ -40,8 +37,7 @@ db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
 app.config['CACHE_TYPE'] = 'RedisCache'
-app.config['CACHE_REDIS_URL'] = 'rediss://default:AVpnAAIjcDFjNzJkMWQxZmQwMWY0YWE1YjAxOWIzMTMxN2MyMGVjOHAxMA@boss-bat-23143.upstash.io:6379'
-app.config['CACHE_REDIS_DB'] = 0
+app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
 app.config['CACHE_DEFAULT_TIMEOUT'] = 300
 cache= Cache(app)
 
@@ -54,8 +50,8 @@ app.config['MAIL_PASSWORD'] = 'wbzf kzpy qrkc xvkz'
 def make_celery(app):
     celery = Celery(
         app.import_name,
-        backend='rediss://default:AVpnAAIjcDFjNzJkMWQxZmQwMWY0YWE1YjAxOWIzMTMxN2MyMGVjOHAxMA@boss-bat-23143.upstash.io:6379/1',
-        broker='rediss://default:AVpnAAIjcDFjNzJkMWQxZmQwMWY0YWE1YjAxOWIzMTMxN2MyMGVjOHAxMA@boss-bat-23143.upstash.io:6379/0'
+        backend='redis://localhost:6379/1',
+        broker='redis://localhost:6379/0'
     )
     celery.conf.update(app.config)
     TaskBase = celery.Task
@@ -73,7 +69,7 @@ def make_celery(app):
 celery = make_celery(app)
 mail= Mail(app)
 base_dir=os.path.dirname(os.path.abspath(__file__))
-static_dir=os.path.join(app.root_path,'static')
+static_dir=os.path.join(base_dir,'static')
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -132,11 +128,11 @@ class Vehicle(db.Model):
 CELERYBEAT_SCHEDULE = {
     'daily_rem':{
         'task': 'tasks.send_reminder',
-        'schedule': crontab(hour=9, minute=31), 
+        'schedule': crontab(hour=13, minute=30), 
     },
     'monthly_rep': {
         'task': 'tasks.generate_monthly_report',
-        'schedule': crontab(day_of_month=23, hour=9, minute=32), 
+        'schedule': crontab(day_of_month=30, hour=13, minute=30), 
     }
 }
 celery.conf.beat_schedule = CELERYBEAT_SCHEDULE
@@ -167,11 +163,11 @@ def generate_monthly_report():
         users= User.query.all()
         for user in users:
             today = datetime.now(IST)
-            this_month=datetime(today.year, today.month, 23)
+            this_month=datetime(today.year, today.month, 30)
             if today.month == 1:
-                last_month = datetime(today.year - 1, 12, 23)
+                last_month = datetime(today.year - 1, 12, 30)
             else:
-                last_month = datetime(today.year, today.month - 1, 23)
+                last_month = datetime(today.year, today.month - 1, 30)
             spots= ReserveParkingSpot.query.filter(ReserveParkingSpot.u_id==user.u_id, ReserveParkingSpot.end_time>=last_month, ReserveParkingSpot.end_time<this_month).all()
             if spots:
                 html_content = f'''
@@ -1082,7 +1078,7 @@ def generate_qr(r_id):
     if not spot:
         return "Invalid reservation", 404
     amount = spot.cost or 10
-    NGROK_URL = "https://mad2-24f1000138.onrender.com"
+    NGROK_URL = "https://24f1000138.loca.lt"
     upi_link = f"{NGROK_URL}/mark_paid/{r_id}/{amount}"
     qr_img = qrcode.make(upi_link)
     qr_path = os.path.join(static_dir, f"qr_{r_id}.png")
@@ -1106,6 +1102,24 @@ def mark_paid(r_id, amount):
           </body>
         </html>
     '''
+
+@app.route('/get_tunnel_password', methods=['GET'])
+def get_tunnel_password():
+    try:
+        response = requests.get("https://loca.lt/mytunnelpassword", timeout=5)
+        if response.status_code == 200:
+            return {'password': response.text.strip()}
+        else:
+            return {'password': 'Unavailable'}, 500
+    except Exception as e:
+        return {'password': f"Error: {str(e)}"}, 500
+
+@app.route('/check_payment_status/<int:r_id>', methods=['GET'])
+def check_payment_status(r_id):
+    spot = ReserveParkingSpot.query.get(r_id)
+    if not spot:
+        return {'status': 'Invalid ID'}, 404
+    return {'status': spot.payment_status}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

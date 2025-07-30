@@ -1,0 +1,7 @@
+Reservation ID,Spot ID,Start Time,End Time,Vehicle Number,Cost,Remarks
+1,1,2025-07-27 18:39:54,2025-07-27 18:40:03,,12,Released/Parked Out
+2,1,2025-07-27 18:40:19,2025-07-30 00:23:18,,648,Released/Parked Out
+3,1,2025-07-30 09:58:56,2025-07-30 09:59:05,,12,Released/Parked Out
+4,1,2025-07-30 10:25:29,2025-07-30 10:25:39,,12,Released/Parked Out
+5,1,2025-07-30 10:34:03,2025-07-30 10:34:08,,12,Released/Parked Out
+6,1,2025-07-30 10:39:24,2025-07-30 10:39:29,,12,Released/Parked Out
